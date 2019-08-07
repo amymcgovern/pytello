@@ -15,47 +15,60 @@ pytello was developed by Amy McGovern and William McGovern-Fagg
 
 import socket
 import threading
+from datetime import datetime
+import time
 
 class Tello:
-    def __init__(self, ip_address="192.168.10.1", port="8889"):
+    def __init__(self, ip_address="192.168.10.1", port=8889):
         self.tello_address = (ip_address, port)
 
         self.is_listening = True
 
         self._create_udp_connection()
 
-        self.listener_thread = threading.Thread(target=self._listen_socket)
-        self.listener_thread.start()
+        self.state_listener_thread = threading.Thread(target=self._listen_state_socket)
+        self.state_listener_thread.start()
+
+        self.command_response_received_status = None
+        self.command_response_received = False
+
+        self.command_listener_thread = threading.Thread(target=self._listen_command_socket)
+        self.command_listener_thread.start()
 
     def _create_udp_connection(self):
         """
         Create the UDP connection
         """
         self.udp_send_sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-        self.udp_send_sock.bind(self.tello_address)
 
-        self.udp_receive_sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-        self.udp_receive_sock.settimeout(5.0)
+        self.udp_state_receive_sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+        self.udp_state_receive_sock.settimeout(5.0)
+
+        self.udp_command_receive_sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+        self.udp_command_receive_sock.settimeout(5.0)
 
         # re-used from pyparrot where these lines fixed errors on some machines
-        self.udp_receive_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.udp_state_receive_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.udp_send_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.udp_command_receive_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        self.udp_receive_sock.bind(('0.0.0.0', 8890))
+        self.udp_state_receive_sock.bind(('0.0.0.0', 8890))
+        self.udp_command_receive_sock.bind(('0.0.0.0', 9000))
 
-    def _listen_socket(self):
+
+    def _listen_state_socket(self):
         """
         Listens to the socket and sleeps in between receives.
         Runs forever (until disconnect is called)
         """
 
-        print("starting listening at ")
+        print("starting listening for state ")
         data = None
 
         while (self.is_listening):
             try:
-                (data, address) = self.udp_receive_sock.recvfrom(1518)
-                print(data.decode(encoding="utf-8"))
+                (data, address) = self.udp_state_receive_sock.recvfrom(1518)
+                # print("state is %s" % data.decode(encoding="utf-8"))
 
             except socket.timeout:
                 print("timeout - trying again")
@@ -63,7 +76,35 @@ class Tello:
             except:
                 pass
 
-            self.handle_data(data)
+            #self.handle_data(data)
+
+        print("disconnecting", "INFO")
+        self.disconnect()
+
+    def _listen_command_socket(self):
+        """
+        Listens to the socket and sleeps in between receives.
+        Runs forever (until disconnect is called)
+        """
+
+        print("starting listening for command feedback ")
+        data = None
+
+        while (self.is_listening):
+            try:
+                (data, address) = self.udp_command_receive_sock.recvfrom(1518)
+                cmd = data.decode(encoding="utf-8")
+                print("command is %s" % cmd)
+                self.command_response_received = True
+                self.command_response_received_status = cmd
+
+            except socket.timeout:
+                print("timeout - trying again")
+
+            except:
+                pass
+
+            #self.handle_data(data)
 
         print("disconnecting", "INFO")
         self.disconnect()
@@ -80,7 +121,8 @@ class Tello:
 
         while (my_data):
             #print("inside loop to handle data ")
-            print(my_data.decode(encoding="utf-8"))
+            #print(my_data.decode(encoding="utf-8"))
+            pass
 
 
     def disconnect(self):
@@ -91,15 +133,37 @@ class Tello:
 
         # Sleep for a moment to allow all socket activity to cease before closing
         # This helps to avoids a Winsock error regarding a operations on a closed socket
-        self.smart_sleep(0.5)
+        self.sleep(0.5)
 
         # then put the close in a try/except to catch any further winsock errors
         # the errors seem to be mostly occurring on windows for some reason
         try:
-            self.udp_receive_sock.close()
+            self.udp_state_receive_sock.close()
+            self.udp_command_receive_sock.close()
             self.udp_send_sock.close()
         except:
             pass
+
+    def _send_command_wait_for_response(self, command_message, max_tries=3):
+        """
+        Send the command string and wait for the response (either ok or error).
+        :param command_message: the message (string)
+        :param max_tries: to keep any infinite loops from happening, limit the maximum tries
+        :return: True if the response was "ok" and False if it was "error"
+        """
+        msg = command_message.encode(encoding="utf-8")
+
+        count = 0
+        self.command_response_received = False
+        while (count < max_tries and not self.command_response_received):
+            self.udp_send_sock.sendto(msg, self.tello_address)
+            time.sleep(0.03)
+            count += 1
+
+        if (self.command_response_received_status == "ok"):
+            return True
+        else:
+            return False
 
     def connect(self):
         """
@@ -108,15 +172,37 @@ class Tello:
         """
 
         # initiate SDK mode
-        msg = "command".encode(encoding="utf-8")
-        self.udp_send_sock.send(msg)
-
+        return self._send_command_wait_for_response("command")
 
     def takeoff(self):
-        msg = "takeoff".encode(encoding="utf-8")
-        self.udp_send_sock.send(msg)
+        """
+        Send takeoff to the drone
+        :return: True if the command was sent and False otherwise
+        """
+        return self._send_command_wait_for_response("takeoff")
 
 
     def land(self):
-        msg = "land".encode(encoding="utf-8")
-        self.udp_send_sock.send(msg)
+        """
+        Send land to the drone
+        :return: True if the command was sent and False otherwise
+        """
+        return self._send_command_wait_for_response("land")
+
+    def sleep(self, timeout):
+        """
+        Sleeps the requested number of seconds but wakes up for notifications
+
+        :param timeout: number of seconds to sleep
+        :return:
+        """
+
+        start_time = datetime.now()
+        new_time = datetime.now()
+        diff = (new_time - start_time).seconds + ((new_time - start_time).microseconds / 1000000.0)
+
+        while (diff < timeout):
+            time.sleep(0.01)
+            new_time = datetime.now()
+            diff = (new_time - start_time).seconds + ((new_time - start_time).microseconds / 1000000.0)
+

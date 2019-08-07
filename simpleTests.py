@@ -3,6 +3,8 @@ import time
 
 tello = Tello()
 
+tello.connect()
+
 tello.takeoff()
 
 time.sleep(3)
