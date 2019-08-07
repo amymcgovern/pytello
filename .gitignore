@@ -104,4 +104,8 @@ venv.bak/
 .mypy_cache/
 
 #pycharm issues
-.idea/
+.idea
+
+# mac issues to ignore
+.DS_Store
+
