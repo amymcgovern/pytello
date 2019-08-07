@@ -7,10 +7,13 @@ tello.connect()
 
 tello.takeoff()
 
-time.sleep(3)
+print("Sleeping")
+tello.sleep(3)
 
+print("Trying to land")
 tello.land()
 
-time.sleep(3)
+tello.sleep(5)
 
+print("Done - disconnecting")
 tello.disconnect()
