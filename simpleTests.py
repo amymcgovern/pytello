@@ -15,4 +15,4 @@ tello.land()
 
 tello.sleep(5)
 
-43
+tello.disconnect()

@@ -26,6 +26,11 @@ class Tello:
 
         self._create_udp_connection()
 
+        # amount of time to wait in between commands (if waiting for a response)
+        self.time_between_commands = 1
+        self.max_command_retry_count = 3
+
+        # start up the listener threads for state and commands (two different ports)
         self.state_listener_thread = threading.Thread(target=self._listen_state_socket)
         self.state_listener_thread.start()
 
@@ -48,17 +53,17 @@ class Tello:
         self.udp_command_receive_sock.settimeout(5.0)
 
         # re-used from pyparrot where these lines fixed errors on some machines
-        #self.udp_state_receive_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        #self.udp_send_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        #self.udp_command_receive_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.udp_state_receive_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.udp_send_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.udp_command_receive_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         try:
-            self.udp_state_receive_sock.bind(('0.0.0.0', 8890))
+            self.udp_state_receive_sock.bind(('', 8890))
         except:
             print("Error binding to the state receive socket")
 
         try:
-            self.udp_command_receive_sock.bind(('0.0.0.0', 9000))
+            self.udp_command_receive_sock.bind(('', 9000))
         except:
             print("Error binding to the command receive socket")
 
@@ -74,11 +79,12 @@ class Tello:
 
         while (self.is_listening):
             try:
-                (data, address) = self.udp_state_receive_sock.recvfrom(1518)
+                (data, address) = self.udp_state_receive_sock.recvfrom(1024)
                 #print("state is %s" % data.decode(encoding="utf-8"))
 
             except socket.timeout:
                 #print("timeout - trying again")
+                time.sleep(0.1)
                 pass
 
             except:
@@ -99,7 +105,7 @@ class Tello:
 
         while (self.is_listening):
             try:
-                (data, address) = self.udp_command_receive_sock.recvfrom(1518)
+                (data, address) = self.udp_command_receive_sock.recvfrom(1024)
                 cmd = data.decode(encoding="utf-8")
                 print("command is %s" % cmd)
                 self.command_response_received = True
@@ -107,6 +113,7 @@ class Tello:
 
             except socket.timeout:
                 #print("timeout - trying again")
+                time.sleep(0.1)
                 pass
 
             except:
@@ -145,12 +152,30 @@ class Tello:
         # then put the close in a try/except to catch any further winsock errors
         # the errors seem to be mostly occurring on windows for some reason
         try:
+            self.udp_state_receive_sock.shutdown(socket.SHUT_RDWR)
+        except Exception as err:
+            print(err)
+            print("Failing to shutdown the sockets")
+
+        try:
+            self.udp_command_receive_sock.shutdown(socket.SHUT_RDWR)
+        except Exception as err:
+            print(err)
+            print("Failing to shutdown the sockets")
+
+        time.sleep(1)
+        try:
             self.udp_state_receive_sock.close()
+        except Exception as err:
+            print(err)
+            print("Failing to close the sockets")
+
+        try:
             self.udp_command_receive_sock.close()
-            self.udp_send_sock.close()
-        except:
-            print("Failing to disconnect the sockets")
-            pass
+        except Exception as err:
+            print(err)
+            print("Failing to close the sockets")
+
 
     def _send_command_no_wait(self, command_message):
         """
@@ -161,24 +186,23 @@ class Tello:
         msg = command_message.encode(encoding="utf-8")
         self.udp_send_sock.sendto(msg, self.tello_address)
 
-    def _send_command_wait_for_response(self, command_message, max_tries=3):
+    def _send_command_wait_for_response(self, command_message):
         """
         Send the command string and wait for the response (either ok or error).
         :param command_message: the message (string)
-        :param max_tries: to keep any infinite loops from happening, limit the maximum tries
         :return: True if the response was "ok" and False if it was "error"
         """
         msg = command_message.encode(encoding="utf-8")
 
         count = 0
         self.command_response_received = False
-        while (count < max_tries and not self.command_response_received):
+        while (count < self.max_command_retry_count and not self.command_response_received):
             print("sending %s" % msg)
             self.udp_send_sock.sendto(msg, self.tello_address)
-            self.sleep(0.1)
+            self.sleep(self.time_between_commands)
             count += 1
 
-        if (self.command_response_received_status == "ok"):
+        if (self.command_response_received_status == "ok" or self.command_response_received_status == "OK"):
             return True
         else:
             return False
