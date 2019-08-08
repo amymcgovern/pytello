@@ -153,15 +153,32 @@ class Tello:
         try:
             self.sock.shutdown(socket.SHUT_RDWR)
         except Exception as err:
-            print(err)
-            print("Failing to shutdown the sockets")
+            #print(err)
+            #print("Failing to shutdown the sockets")
+            pass
 
         time.sleep(1)
         try:
             self.sock.close()
         except Exception as err:
-            print(err)
-            print("Failing to close the sockets")
+            #print(err)
+            #print("Failing to close the sockets")
+            pass
+
+        try:
+            self.state_sock.shutdown(socket.SHUT_RDWR)
+        except Exception as err:
+            #print(err)
+            #print("Failing to shutdown the state sockets")
+            pass
+
+        time.sleep(1)
+        try:
+            self.state_sock.close()
+        except Exception as err:
+            #print(err)
+            #print("Failing to close the state sockets")
+            pass
 
     def _send_command_no_wait(self, command_message):
         """
