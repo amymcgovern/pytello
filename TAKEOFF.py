@@ -8,11 +8,6 @@ tello.connect()
 tello.takeoff()
 
 print("Sleeping")
-tello.sleep(3)
+tello.sleep(20)
 
-print("Trying to land")
-tello.land()
-
-tello.sleep(5)
-
-43
+tello.disconnect()

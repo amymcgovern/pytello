@@ -224,3 +224,52 @@ class Tello:
             new_time = datetime.now()
             diff = (new_time - start_time).seconds + ((new_time - start_time).microseconds / 1000000.0)
 
+    def flip(self, direction, timeToSleep):
+        """
+        Send land to the drone
+        :return: True if the command was sent and False otherwise
+        """
+        if(direction is "left"):
+            self._send_command_wait_for_response("flip l")
+            self._send_command_wait_for_response("flip l")
+            self._send_command_wait_for_response("flip l")
+            self._send_command_wait_for_response("flip l")
+            self._send_command_wait_for_response("flip l")
+            return self._send_command_wait_for_response("flip l")
+        elif(direction is "right"):
+            self._send_command_wait_for_response("flip r")
+            self._send_command_wait_for_response("flip r")
+            self._send_command_wait_for_response("flip r")
+            self._send_command_wait_for_response("flip r")
+            self._send_command_wait_for_response("flip r")
+            return self._send_command_wait_for_response("flip r")
+        elif(direction is "forward"):
+            self._send_command_wait_for_response("flip f")
+            self._send_command_wait_for_response("flip f")
+            self._send_command_wait_for_response("flip f")
+            self._send_command_wait_for_response("flip f")
+            self._send_command_wait_for_response("flip f")
+            return self._send_command_wait_for_response("flip f")
+        elif(direction is "back"):
+            self._send_command_wait_for_response("flip b")
+            self._send_command_wait_for_response("flip b")
+            self._send_command_wait_for_response("flip b")
+            self._send_command_wait_for_response("flip b")
+            self._send_command_wait_for_response("flip b")
+            return self._send_command_wait_for_response("flip b")
+
+        print("flipped, sleeping now")
+        self.sleep(timeToSleep)
+        print("slept, exiting")
+
+    def safe_land(self):
+        """
+        makes sure the dang drones lands
+        :return: none
+        """
+        self.land()
+        self.land()
+        self.land()
+        self.land()
+        self.land()
+        self.land()
