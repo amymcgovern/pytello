@@ -1,5 +1,4 @@
-from Tello import Tello
-import time
+from pytello.Tello import Tello
 
 tello = Tello()
 
