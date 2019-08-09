@@ -257,46 +257,163 @@ class Tello:
         :return: True if the command was sent and False otherwise
         """
         if(direction is "left"):
-            self._send_command_wait_for_response("flip l")
-            self._send_command_wait_for_response("flip l")
-            self._send_command_wait_for_response("flip l")
-            self._send_command_wait_for_response("flip l")
-            self._send_command_wait_for_response("flip l")
             return self._send_command_wait_for_response("flip l")
         elif(direction is "right"):
-            self._send_command_wait_for_response("flip r")
-            self._send_command_wait_for_response("flip r")
-            self._send_command_wait_for_response("flip r")
-            self._send_command_wait_for_response("flip r")
-            self._send_command_wait_for_response("flip r")
             return self._send_command_wait_for_response("flip r")
         elif(direction is "forward"):
-            self._send_command_wait_for_response("flip f")
-            self._send_command_wait_for_response("flip f")
-            self._send_command_wait_for_response("flip f")
-            self._send_command_wait_for_response("flip f")
-            self._send_command_wait_for_response("flip f")
             return self._send_command_wait_for_response("flip f")
         elif(direction is "back"):
-            self._send_command_wait_for_response("flip b")
-            self._send_command_wait_for_response("flip b")
-            self._send_command_wait_for_response("flip b")
-            self._send_command_wait_for_response("flip b")
-            self._send_command_wait_for_response("flip b")
             return self._send_command_wait_for_response("flip b")
 
         print("flipped, sleeping now")
         self.sleep(timeToSleep)
         print("slept, exiting")
 
-    def safe_land(self):
+    def hover(self):
         """
-        makes sure the dang drones lands
+        Makes the drone hover
+        :return: if it hovers or not
+        """
+
+        return self._send_command_wait_for_response("stop")
+
+    def forward_cm(self, pitch):
+        """
+        Moves ONLY FORWARD in cm
+        :param pitch: amount to move
         :return: none
         """
-        self.land()
-        self.land()
-        self.land()
-        self.land()
-        self.land()
-        self.land()
+
+        #makes sure people aren't inputting negetive pitch
+        if(pitch < 0):
+            pitch = -pitch
+
+        #makes sure that pitch is within the limites
+        if(pitch < 20):
+            pitch = 20
+        elif(pitch > 500):
+            pitch - 500
+
+        self._send_command_wait_for_response("forward %03d" % pitch)
+
+    def backward_cm(self, pitch):
+        """
+        Moves ONLY FORWARD in cm
+        :param pitch: amount to move
+        :return: none
+        """
+
+        # makes sure people aren't inputting negetive pitch
+        if (pitch < 0):
+            pitch = -pitch
+
+        # makes sure that pitch is within the limites
+        if (pitch < 20):
+            pitch = 20
+        elif (pitch > 500):
+            pitch - 500
+
+        self._send_command_wait_for_response("back %03d" % pitch)
+
+    def left_cm(self, roll):
+        """
+        Moves ONLY FORWARD in cm
+        :param pitch: amount to move
+        :return: none
+        """
+
+        #makes sure people aren't inputting negetive pitch
+        if(roll < 0):
+            roll = -roll
+
+        #makes sure that pitch is within the limites
+        if(roll < 20):
+            roll = 20
+        elif(roll > 500):
+            roll - 500
+
+        self._send_command_wait_for_response("forward %03d" % roll)
+
+    def right_cm(self, roll):
+        """
+        Moves ONLY FORWARD in cm
+        :param pitch: amount to move
+        :return: none
+        """
+
+        # makes sure people aren't inputting negetive pitch
+        if (roll < 0):
+            roll = -roll
+
+        # makes sure that pitch is within the limites
+        if (roll < 20):
+            roll = 20
+        elif (roll > 500):
+            roll - 500
+
+        self._send_command_wait_for_response("back %03d" % roll)
+
+    def move_cm(self, pitch, roll):
+        """
+        Flies in pitch and roll (front back, left right) in cm
+        :param pitch: the number of cms to fly pitch
+        :param roll: the number of cms to fly yaw
+        :return:
+        """
+
+        if(pitch > 0):
+            #setting maxes for pitch
+            if(pitch > 500):
+                pitch = 500
+            elif(pitch < 20):
+                pitch = 20
+        elif(pitch < 0):
+            #setting maxes for pitch
+            if(pitch < -500):
+                pitch = -500
+            elif(pitch > -20):
+                pitch = -20
+
+        if(roll > 0):
+            #setting maxes for roll
+            if(roll > 500):
+                roll = 500
+            elif(roll < 20):
+                roll = 20
+        elif(roll < 0):
+            #setting maxes for roll
+            if(roll < -500):
+                roll = -500
+            elif(roll > -20):
+                roll = -20
+
+        #making the drone move in pitch by sending the approprate plus or minus command for pitch
+        if(pitch > 0):
+            self.forward_cm(pitch)
+        elif(pitch < 0):
+            self.backward_cm(pitch)
+
+        #making the drone move in roll by sending the approprate plus or minus command for roll
+        if(roll > 0):
+            self.left_cm(roll)
+        elif(roll < 0):
+            self.right_cm(roll)
+
+    def turn_degrees(self, degrees):
+        """
+        Turns the number of degrees inputted
+        :param degrees: number of degrees to turn
+        :return: none
+        """
+
+        if(degrees > 0):
+            while(degrees > 360):
+                degrees = degrees - 360
+
+            return self._send_command_wait_for_response("cw %03d" % degrees)
+
+        if(degrees < 0):
+            while(degrees < -360):
+                degrees = degrees + 360
+
+            return self._send_command_wait_for_response("ccw %03d" % -degrees)
