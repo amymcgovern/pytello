@@ -10,7 +10,7 @@ Some of this code was directly adapted from the pyparrot package:
 https://github.com/amymcgovern/pyparrot
 
 pytello was developed by Amy McGovern and William McGovern-Fagg
-2019
+August 2019
 """
 
 import socket
@@ -45,7 +45,7 @@ class Tello:
 
     def _create_udp_connection(self):
         """
-        Create the UDP connection
+        Create the UDP connections to the state and the command feedback
         """
         self.sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.sock.settimeout(5.0)
@@ -253,7 +253,9 @@ class Tello:
 
     def flip(self, direction, timeToSleep):
         """
-        Send land to the drone
+        Tell the drone to flip and then wait for the flip to happen timeToSleep seconds
+        :param direction: must be one of left, right, forward, back
+        :param timeToSleep: number of seconds to sleep for the flip to happen
         :return: True if the command was sent and False otherwise
         """
         if(direction is "left"):
@@ -264,155 +266,144 @@ class Tello:
             return self._send_command_wait_for_response("flip f")
         elif(direction is "back"):
             return self._send_command_wait_for_response("flip b")
+        else:
+            print("Error: direction %s is not a valid direction.  Direction should be left, right, forward, back")
+            return False
 
         print("flipped, sleeping now")
         self.sleep(timeToSleep)
         print("slept, exiting")
 
-    def hover(self):
+    def hover(self, timeToHover=None):
         """
-        Makes the drone hover
+        Makes the drone hover - optionally stay in hover for the time specified
+        :param timeToHover: time to sleep (optional)
         :return: if it hovers or not
         """
+        success = self._send_command_wait_for_response("stop")
+        if (success):
+            self.sleep(timeToHover)
+        return success
 
-        return self._send_command_wait_for_response("stop")
-
-    def forward_cm(self, pitch):
+    def _ensure_distance_within_limits(self, cm):
         """
-        Moves ONLY FORWARD in cm
-        :param pitch: amount to move
+        Internal function to ensure the distance is within the limits specified by the SDK [20,500]
+        :param distance: distance in cm
+        :return: the updated distance
+        """
+        # makes sure people aren't inputting negative numbers
+        cm = abs(cm)
+
+        #makes sure that distance is within the limits
+        if (cm == 0):
+            return 0
+
+        if(cm > 0):
+            if (cm < 20):
+                cm = 20
+            elif (cm > 500):
+                cm = 500
+        else:
+            if (cm > -20):
+                cm = -20
+            elif (cm < -500):
+                cm = -500
+
+        return cm
+
+
+    def forward_cm(self, cm):
+        """
+        Moves ONLY FORWARD in cm.  If the user gives it a negative number, the number is made positive.
+        Also enforces cm between 20 and 500 (per SDK)
+        :param cm: amount to move FORWARDS in cm [20,500]
         :return: none
         """
 
-        #makes sure people aren't inputting negetive pitch
-        if(pitch < 0):
-            pitch = -pitch
+        distance = self._ensure_distance_within_limits(cm)
 
-        #makes sure that pitch is within the limites
-        if(pitch < 20):
-            pitch = 20
-        elif(pitch > 500):
-            pitch - 500
+        return self._send_command_wait_for_response("forward %03d" % distance)
 
-        self._send_command_wait_for_response("forward %03d" % pitch)
-
-    def backward_cm(self, pitch):
+    def backward_cm(self, cm):
         """
-        Moves ONLY FORWARD in cm
-        :param pitch: amount to move
+        Moves ONLY BACKWARDS in cm. If the user gives it a negative number, the number is made positive.
+        Also enforces cm between 20 and 500 (per SDK)
+        :param cm: amount to move BACKWARDS in cm [20,500]
         :return: none
         """
 
-        # makes sure people aren't inputting negetive pitch
-        if (pitch < 0):
-            pitch = -pitch
+        distance = self._ensure_distance_within_limits(cm)
 
-        # makes sure that pitch is within the limites
-        if (pitch < 20):
-            pitch = 20
-        elif (pitch > 500):
-            pitch - 500
+        return self._send_command_wait_for_response("back %03d" % distance)
 
-        self._send_command_wait_for_response("back %03d" % pitch)
-
-    def left_cm(self, roll):
+    def left_cm(self, cm):
         """
-        Moves ONLY FORWARD in cm
-        :param pitch: amount to move
+        Moves ONLY LEFT in cm. If the user gives it a negative number, the number is made positive.
+        Also enforces cm between 20 and 500 (per SDK)
+        :param cm: amount to move LEFT in cm [20,500]
         :return: none
         """
 
-        #makes sure people aren't inputting negetive pitch
-        if(roll < 0):
-            roll = -roll
+        distance = self._ensure_distance_within_limits(cm)
 
-        #makes sure that pitch is within the limites
-        if(roll < 20):
-            roll = 20
-        elif(roll > 500):
-            roll - 500
+        return self._send_command_wait_for_response("forward %03d" % distance)
 
-        self._send_command_wait_for_response("forward %03d" % roll)
-
-    def right_cm(self, roll):
+    def right_cm(self, cm):
         """
-        Moves ONLY FORWARD in cm
-        :param pitch: amount to move
+        Moves ONLY RIGHT in cm. If the user gives it a negative number, the number is made positive.
+        Also enforces cm between 20 and 500 (per SDK)
+        :param cm: amount to move RIGHT in cm [20,500]
         :return: none
         """
 
-        # makes sure people aren't inputting negetive pitch
-        if (roll < 0):
-            roll = -roll
+        distance = self._ensure_distance_within_limits(cm)
 
-        # makes sure that pitch is within the limites
-        if (roll < 20):
-            roll = 20
-        elif (roll > 500):
-            roll - 500
+        return self._send_command_wait_for_response("back %03d" % distance)
 
-        self._send_command_wait_for_response("back %03d" % roll)
-
-    def move_cm(self, pitch, roll):
+    def move_rectilinear_cm(self, x, y):
         """
-        Flies in pitch and roll (front back, left right) in cm
-        :param pitch: the number of cms to fly pitch
-        :param roll: the number of cms to fly yaw
-        :return:
+        Higher-level function to move in both x (forward/backward) and y (right/left) in straight lines.
+        Moves along x first and then y.  Positive x is forward and negative x is backwards. Positive y
+        is right and negative is left.
+
+        :param pitch: the number of cms to fly forward (positive) or backward (negative).  Must be between 20 and 500
+        :param roll: the number of cms to fly right (positive) or left (negative).  Must be between 20 and 500.
+        :return: True if both commands succeeded and False otherwise
         """
 
-        if(pitch > 0):
-            #setting maxes for pitch
-            if(pitch > 500):
-                pitch = 500
-            elif(pitch < 20):
-                pitch = 20
-        elif(pitch < 0):
-            #setting maxes for pitch
-            if(pitch < -500):
-                pitch = -500
-            elif(pitch > -20):
-                pitch = -20
+        x = self._ensure_distance_within_limits(x)
+        y = self._ensure_distance_within_limits(y)
 
-        if(roll > 0):
-            #setting maxes for roll
-            if(roll > 500):
-                roll = 500
-            elif(roll < 20):
-                roll = 20
-        elif(roll < 0):
-            #setting maxes for roll
-            if(roll < -500):
-                roll = -500
-            elif(roll > -20):
-                roll = -20
+        #making the drone move in x by sending the approprate plus or minus command
+        if(x > 0):
+            success1 = self.forward_cm(x)
+        elif(x < 0):
+            success1 = self.backward_cm(x)
 
-        #making the drone move in pitch by sending the approprate plus or minus command for pitch
-        if(pitch > 0):
-            self.forward_cm(pitch)
-        elif(pitch < 0):
-            self.backward_cm(pitch)
+        #making the drone move in y by sending the approprate plus or minus command
+        if(y > 0):
+            success2 = self.left_cm(y)
+        elif(y < 0):
+            success2 = self.right_cm(y)
 
-        #making the drone move in roll by sending the approprate plus or minus command for roll
-        if(roll > 0):
-            self.left_cm(roll)
-        elif(roll < 0):
-            self.right_cm(roll)
+        return (success1 and success2)
 
     def turn_degrees(self, degrees):
         """
-        Turns the number of degrees inputted
-        :param degrees: number of degrees to turn
-        :return: none
+        Turn the drone either clockwise (positive) or counterclockwise (negative)
+        :param degrees: number of degrees to turn (0,360]
+        :return: True if the command succeeded and False otherwise
         """
 
         if(degrees > 0):
+            # ensure the degrees are within (0, 360]
             while(degrees > 360):
                 degrees = degrees - 360
 
             return self._send_command_wait_for_response("cw %03d" % degrees)
 
         if(degrees < 0):
+            # ensure the degrees are within (0, -360]
             while(degrees < -360):
                 degrees = degrees + 360
 
