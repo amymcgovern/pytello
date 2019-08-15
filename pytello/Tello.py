@@ -408,3 +408,69 @@ class Tello:
                 degrees = degrees + 360
 
             return self._send_command_wait_for_response("ccw %03d" % -degrees)
+
+    def check_battery_status(self, safeBatt=25):
+        """
+        This function checks the battery percentage, returns the battery percentage and prints out if it is safe or not to fly
+        :param safeBatt: the battery percentage that you want the function to print that it is not safe to takeoff at. Defaults to 25%
+        :return: the battery percentage (from 0-100) if it is higher than safeBatt, and false if it is lower than safeBatt
+        """
+
+        battteryPercentage = self._send_command_wait_for_response("battery?")
+
+        if(battteryPercentage <= safeBatt):
+            print("It is not safe to takeoff!")
+            return False
+        else:
+            print("it is safe to takeoff!")
+            return battteryPercentage
+
+    def check_current_speed(self):
+        """
+        Checks the current speed of the drone in cm/s
+        :return: The current speed of the drone
+        """
+
+        currentSpeed = self._send_command_wait_for_response("speed?")
+
+        return currentSpeed
+
+    def check_current_flight_time(self):
+        """
+        Checks the current flight time of the drone and returns
+        :return: Current flight time of the drone
+        """
+
+        currentFlightTime = self._send_command_wait_for_response("time?")
+
+        return currentFlightTime
+
+    def check_wifi_signal(self):
+        """
+        Checks the wifi signal of the drone
+        :return: Wifi signal
+        """
+
+        wifiSignal = self._send_command_wait_for_response("wifi?")
+
+        return wifiSignal
+
+    def check_drone_serial(self):
+        """
+        Checks the drone's serial number
+        :return: drone serial number
+        """
+
+        droneSerial = self._send_command_wait_for_response("sn?")
+
+        return droneSerial
+
+    def check_drone_sdk(self):
+        """
+        Checks the drone's sdk version
+        :return: the drone sdk version
+        """
+
+        droneSDK = self._send_command_wait_for_response("sdk?")
+
+        return droneSDK
