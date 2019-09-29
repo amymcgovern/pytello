@@ -1,3 +1,5 @@
+# Emergency landing - sends the land command a bunch
+
 from pytello.Tello import Tello
 
 tello = Tello()
