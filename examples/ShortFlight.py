@@ -9,10 +9,14 @@ print("Taking off!")
 drone.takeoff()
 
 # fly a short distance forward
-drone.forward_cm(50)
-drone.sleep(5)
+drone.forward_cm(cm=200, speed=50)
+drone.sleep(3)
 
-print("Land")
+# flip (for fun!)
+drone.flip("forward", 5)
+drone.sleep(3)
+
+# land
 drone.land()
 
 print("Disconnecting")

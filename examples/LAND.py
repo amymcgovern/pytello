@@ -1,4 +1,4 @@
-# Emergency landing - sends the land command a bunch
+# Emergency landing - sends the land command a bunch of times just to ensure it lands
 
 from pytello.Tello import Tello
 

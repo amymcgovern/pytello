@@ -263,16 +263,22 @@ class Tello:
         :return: True if the command was sent and False otherwise
         """
         if(direction is "left"):
-            return self._send_command_wait_for_response("flip l")
+            result = self._send_command_wait_for_response("flip l")
         elif(direction is "right"):
-            return self._send_command_wait_for_response("flip r")
+            result = self._send_command_wait_for_response("flip r")
         elif(direction is "forward"):
-            return self._send_command_wait_for_response("flip f")
+            result = self._send_command_wait_for_response("flip f")
         elif(direction is "back"):
-            return self._send_command_wait_for_response("flip b")
+            result = self._send_command_wait_for_response("flip b")
         else:
             print("Error: direction %s is not a valid direction.  Direction should be left, right, forward, back")
             return False
+
+        # sleep the specified time
+        self.sleep(timeToSleep)
+
+        # return what the drone said as the flip result
+        return result
 
 
     def hover(self, timeToHover=None):

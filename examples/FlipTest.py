@@ -1,3 +1,6 @@
+"""
+Test flipping in all directions
+"""
 from pytello.Tello import Tello
 
 tello = Tello()
