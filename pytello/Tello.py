@@ -79,7 +79,7 @@ class Tello:
             try:
                 (data, address) = self.state_sock.recvfrom(1024)
                 #print("state is %s" % data.decode(encoding="utf-8"))
-                self.update_state(data.decode(encoding="utf-8"))
+                self._update_state(data.decode(encoding="utf-8"))
 
             except socket.timeout:
                 #print("timeout - trying again")
@@ -119,7 +119,7 @@ class Tello:
 
         print("ending command socket listener")
 
-    def update_state(self, data):
+    def _update_state(self, data):
         """
         Handles the state data as it comes in.  All sensors stored in a dictionary.
 
@@ -212,30 +212,37 @@ class Tello:
     def connect(self):
         """
         Setup the Tello to be listening to SDK mode
-        :return:
+
+        :return: True if the connection was created and False otherwise
         """
 
         # initiate SDK mode
-        return self._send_command_wait_for_response("command")
+        result = self._send_command_wait_for_response("command")
+        if (result):
+            print("Connection successfully created")
+        else:
+            print("Error creating connection")
+        return result
 
-    def takeoff(self, seconds_to_land=3):
+    def takeoff(self, seconds_to_wait=3):
         """
         Send takeoff to the drone
+
         :return: True if the command was sent and False otherwise
         """
         success = self._send_command_wait_for_response("takeoff")
-        self.sleep(seconds_to_land)
+        self.sleep(seconds_to_wait)
         return success
 
 
-    def land(self, seconds_to_land=3):
+    def land(self, seconds_to_wait=3):
         """
         Send land to the drone
-        :param seconds_to_land: optional number of seconds to sleep waiting for the land to finish (default 3)
+        :param seconds_to_wait: optional number of seconds to sleep waiting for the land to finish (default 3)
         :return: True if the command was sent and False otherwise
         """
         success = self._send_command_wait_for_response("land")
-        self.sleep(seconds_to_land)
+        self.sleep(seconds_to_wait)
         return success
 
     def sleep(self, timeout):
@@ -255,11 +262,11 @@ class Tello:
             new_time = datetime.now()
             diff = (new_time - start_time).seconds + ((new_time - start_time).microseconds / 1000000.0)
 
-    def flip(self, direction, timeToSleep):
+    def flip(self, direction, seconds_to_wait=3):
         """
         Tell the drone to flip and then wait for the flip to happen timeToSleep seconds
         :param direction: must be one of left, right, forward, back
-        :param timeToSleep: number of seconds to sleep for the flip to happen
+        :param seconds_to_wait: number of seconds to sleep for the flip to happen
         :return: True if the command was sent and False otherwise
         """
         if(direction is "left"):
@@ -275,7 +282,7 @@ class Tello:
             return False
 
         # sleep the specified time
-        self.sleep(timeToSleep)
+        self.sleep(seconds_to_wait)
 
         # return what the drone said as the flip result
         return result
@@ -583,21 +590,15 @@ class Tello:
         speed = self._ensure_speed_within_limits(new_speed)
         return self._send_command_wait_for_response("speed %d" % speed)
 
-    def check_battery_status(self, safeBatt=25):
+    def check_battery_status(self):
         """
-        This function checks the battery percentage, returns the battery percentage and prints out if it is safe or not to fly
-        :param safeBatt: the battery percentage that you want the function to print that it is not safe to takeoff at. Defaults to 25%
-        :return: the battery percentage (from 0-100) if it is higher than safeBatt, and false if it is lower than safeBatt
+        This returns the battery percentage
+
+        :return: the battery percentage (from 0-100)
         """
 
         battteryPercentage = self._send_command_wait_for_response("battery?")
-
-        if(battteryPercentage <= safeBatt):
-            print("It is not safe to takeoff!")
-            return False
-        else:
-            print("it is safe to takeoff!")
-            return battteryPercentage
+        return battteryPercentage
 
     def check_current_speed(self):
         """
