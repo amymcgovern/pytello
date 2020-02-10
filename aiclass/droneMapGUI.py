@@ -207,7 +207,7 @@ class DroneGUI:
 
         # bind the button clicks to draw out the map
         self.room_canvas.bind("<Button-1>", self.toggle_obstacle_click)
-        self.room_canvas.bind("<Button-2>", self.change_obstacle_type_click)
+        self.room_canvas.bind("<Button-3>", self.change_obstacle_type_click)
 
         # add in the obstacles (if any exist already)
         (xs, ys) = np.nonzero(self.room_map)
