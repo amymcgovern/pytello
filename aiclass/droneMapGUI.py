@@ -242,6 +242,8 @@ class DroneGUI:
         fp = open(filename, "rb")
         self.scale_val = pickle.load(fp)
         self.room_map = pickle.load(fp)
+        self.obstacle_ids = np.zeros(self.room_map.shape, dtype='int')
+
         #print("scale val is ", self.scale_val)
         #print("room map is ", self.room_map)
         fp.close()
@@ -263,7 +265,18 @@ class DroneGUI:
 
 
     def about_menu(self):
-        pass
+        """
+        Bring up the about/help menu
+        """
+        text_window = Toplevel(self.root)
+        text = Text(text_window, height=3, width=80)
+        text.pack()
+        help_text = """Drone GUI: click once to make an obstacle, 
+        right click to change the type of obstacle (start/goal/obstacle)
+        or to remove the obstacle.
+        """
+        text.insert(END, help_text)
+        
 
     def draw_initial_gui(self):
         """
