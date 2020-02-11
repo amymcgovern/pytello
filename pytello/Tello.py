@@ -209,6 +209,24 @@ class Tello:
         else:
             return False
 
+    def _send_command_wait_for_numeric_response(self, command_message):
+        """
+        Send the command string and wait for the numeric response
+        :param command_message: the message (string)
+        :return: the numeric response (but encoded as a string as some of the numeric responses have characters in them)
+        """
+        msg = command_message.encode(encoding="utf-8")
+
+        count = 0
+        self.command_response_received = False
+        while (count < self.max_command_retry_count and not self.command_response_received):
+            print("sending %s" % msg)
+            self.sock.sendto(msg, self.tello_address)
+            self.sleep(self.time_between_commands)
+            count += 1
+
+        return self.command_response_received_status
+
     def connect(self):
         """
         Setup the Tello to be listening to SDK mode
@@ -597,7 +615,7 @@ class Tello:
         :return: the battery percentage (from 0-100)
         """
 
-        battteryPercentage = self._send_command_wait_for_response("battery?")
+        battteryPercentage = self._send_command_wait_for_numeric_response("battery?")
         return battteryPercentage
 
     def check_current_speed(self):
@@ -606,7 +624,7 @@ class Tello:
         :return: The current speed of the drone
         """
 
-        currentSpeed = self._send_command_wait_for_response("speed?")
+        currentSpeed = self._send_command_wait_for_numeric_response("speed?")
 
         return currentSpeed
 
@@ -616,7 +634,7 @@ class Tello:
         :return: Current flight time of the drone
         """
 
-        currentFlightTime = self._send_command_wait_for_response("time?")
+        currentFlightTime = self._send_command_wait_for_numeric_response("time?")
 
         return currentFlightTime
 
@@ -626,7 +644,7 @@ class Tello:
         :return: Wifi signal
         """
 
-        wifiSignal = self._send_command_wait_for_response("wifi?")
+        wifiSignal = self._send_command_wait_for_numeric_response("wifi?")
 
         return wifiSignal
 
@@ -636,7 +654,7 @@ class Tello:
         :return: drone serial number
         """
 
-        droneSerial = self._send_command_wait_for_response("sn?")
+        droneSerial = self._send_command_wait_for_numeric_response("sn?")
 
         return droneSerial
 
@@ -646,6 +664,6 @@ class Tello:
         :return: the drone sdk version
         """
 
-        droneSDK = self._send_command_wait_for_response("sdk?")
+        droneSDK = self._send_command_wait_for_numeric_response("sdk?")
 
         return droneSDK
