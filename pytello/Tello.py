@@ -18,6 +18,7 @@ import threading
 from datetime import datetime
 import time
 
+
 class Tello:
     def __init__(self, ip_address="192.168.10.1", port=8889):
         self.tello_address = (ip_address, port)
@@ -36,35 +37,37 @@ class Tello:
         self.command_response_received_status = None
         self.command_response_received = False
 
-        self.command_listener_thread = threading.Thread(target=self._listen_command_socket)
+        self.command_listener_thread = threading.Thread(
+            target=self._listen_command_socket)
         self.command_listener_thread.start()
 
-        self.state_listener_thread = threading.Thread(target=self._listen_state_socket)
+        self.state_listener_thread = threading.Thread(
+            target=self._listen_state_socket)
         self.state_listener_thread.start()
-
 
     def _create_udp_connection(self):
         """
         Create the UDP connections to the state and the command feedback
         """
-        self.sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+        self.sock = socket.socket(family=socket.AF_INET,
+                                  type=socket.SOCK_DGRAM)
         self.sock.settimeout(5.0)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        self.state_sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+        self.state_sock = socket.socket(family=socket.AF_INET,
+                                        type=socket.SOCK_DGRAM)
         self.state_sock.settimeout(5.0)
         self.state_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         try:
             self.state_sock.bind(('0.0.0.0', 8890))
-        except:
+        except Exception:
             print("Error binding to the state receive socket")
 
         try:
             self.sock.bind(('', 8889))
-        except:
+        except Exception:
             print("Error binding to the command receive socket")
-
 
     def _listen_state_socket(self):
         """
@@ -78,15 +81,15 @@ class Tello:
         while (self.is_listening):
             try:
                 (data, address) = self.state_sock.recvfrom(1024)
-                #print("state is %s" % data.decode(encoding="utf-8"))
+                # print("state is %s" % data.decode(encoding="utf-8"))
                 self._update_state(data.decode(encoding="utf-8"))
 
             except socket.timeout:
-                #print("timeout - trying again")
+                # print("timeout - trying again")
                 time.sleep(0.1)
                 pass
 
-            except:
+            except Exception:
                 pass
 
         print("ending state socket listener")
@@ -101,16 +104,16 @@ class Tello:
         data = None
 
         while (self.is_listening):
-            #print("Inside loop in command listener")
+            # print("Inside loop in command listener")
             try:
                 (data, address) = self.sock.recvfrom(1024)
                 cmd = data.decode(encoding="utf-8")
-                #print("command is %s" % cmd)
+                # print("command is %s" % cmd)
                 self.command_response_received = True
                 self.command_response_received_status = cmd
 
             except socket.timeout:
-                #print("command socket timeout - trying again")
+                # print("command socket timeout - trying again")
                 time.sleep(0.1)
                 pass
 
@@ -133,7 +136,7 @@ class Tello:
             sensor_pair = sensor_readings[i].split(':')
             try:
                 self.sensor_dict[str(sensor_pair[0])] = float(sensor_pair[1])
-            except:
+            except Exception:
                 self.sensor_dict[str(sensor_pair[0])] = str(sensor_pair[1])
 
     def disconnect(self):
@@ -151,31 +154,31 @@ class Tello:
         try:
             self.sock.shutdown(socket.SHUT_RDWR)
         except Exception as err:
-            #print(err)
-            #print("Failing to shutdown the sockets")
+            # print(err)
+            # print("Failing to shutdown the sockets")
             pass
 
         time.sleep(1)
         try:
             self.sock.close()
         except Exception as err:
-            #print(err)
-            #print("Failing to close the sockets")
+            # print(err)
+            # print("Failing to close the sockets")
             pass
 
         try:
             self.state_sock.shutdown(socket.SHUT_RDWR)
         except Exception as err:
-            #print(err)
-            #print("Failing to shutdown the state sockets")
+            # print(err)
+            # print("Failing to shutdown the state sockets")
             pass
 
         time.sleep(1)
         try:
             self.state_sock.close()
         except Exception as err:
-            #print(err)
-            #print("Failing to close the state sockets")
+            # print(err)
+            # print("Failing to close the state sockets")
             pass
 
     def _send_command_no_wait(self, command_message):
@@ -198,13 +201,15 @@ class Tello:
 
         count = 0
         self.command_response_received = False
-        while (count < self.max_command_retry_count and not self.command_response_received):
+        while (count < self.max_command_retry_count
+               and not self.command_response_received):
             print("sending %s" % msg)
             self.sock.sendto(msg, self.tello_address)
             self.sleep(self.time_between_commands)
             count += 1
 
-        if (self.command_response_received_status == "ok" or self.command_response_received_status == "OK"):
+        if (self.command_response_received_status == "ok"
+                or self.command_response_received_status == "OK"):
             return True
         else:
             return False
@@ -219,7 +224,8 @@ class Tello:
 
         count = 0
         self.command_response_received = False
-        while (count < self.max_command_retry_count and not self.command_response_received):
+        while (count < self.max_command_retry_count
+               and not self.command_response_received):
             print("sending %s" % msg)
             self.sock.sendto(msg, self.tello_address)
             self.sleep(self.time_between_commands)
@@ -252,7 +258,6 @@ class Tello:
         self.sleep(seconds_to_wait)
         return success
 
-
     def land(self, seconds_to_wait=3):
         """
         Send land to the drone
@@ -273,12 +278,14 @@ class Tello:
 
         start_time = datetime.now()
         new_time = datetime.now()
-        diff = (new_time - start_time).seconds + ((new_time - start_time).microseconds / 1000000.0)
+        diff = (new_time - start_time).seconds + (
+            (new_time - start_time).microseconds / 1000000.0)
 
         while (diff < timeout):
             time.sleep(0.01)
             new_time = datetime.now()
-            diff = (new_time - start_time).seconds + ((new_time - start_time).microseconds / 1000000.0)
+            diff = (new_time - start_time).seconds + (
+                (new_time - start_time).microseconds / 1000000.0)
 
     def flip(self, direction, seconds_to_wait=3):
         """
@@ -287,16 +294,18 @@ class Tello:
         :param seconds_to_wait: number of seconds to sleep for the flip to happen
         :return: True if the command was sent and False otherwise
         """
-        if(direction is "left"):
+        if (direction is "left"):
             result = self._send_command_wait_for_response("flip l")
-        elif(direction is "right"):
+        elif (direction is "right"):
             result = self._send_command_wait_for_response("flip r")
-        elif(direction is "forward"):
+        elif (direction is "forward"):
             result = self._send_command_wait_for_response("flip f")
-        elif(direction is "back"):
+        elif (direction is "back"):
             result = self._send_command_wait_for_response("flip b")
         else:
-            print("Error: direction %s is not a valid direction.  Direction should be left, right, forward, back")
+            print(
+                "Error: direction %s is not a valid direction.  Direction should be left, right, forward, back"
+            )
             return False
 
         # sleep the specified time
@@ -304,7 +313,6 @@ class Tello:
 
         # return what the drone said as the flip result
         return result
-
 
     def hover(self, timeToHover=None):
         """
@@ -324,7 +332,7 @@ class Tello:
         :return: the updated distance
         """
 
-        #makes sure that distance is within the limits
+        # makes sure that distance is within the limits
         if (cm == 0):
             return 0
 
@@ -349,14 +357,13 @@ class Tello:
         # makes sure people aren't inputting negative numbers
         cm = abs(speed)
 
-        if(cm >= 10):
+        if (cm >= 10):
             if (cm > 100):
                 cm = 100
         else:
             # speed can't be less than 10
             return 0
         return cm
-
 
     def forward_cm(self, cm, speed=None):
         """
@@ -465,22 +472,19 @@ class Tello:
         :return: True if both commands succeeded and False otherwise
         """
 
-        x = self._ensure_distance_within_limits(x)
-        y = self._ensure_distance_within_limits(y)
-
-        #making the drone move in x by sending the approprate plus or minus command
-        if(x > 0):
+        # making the drone move in x by sending the approprate plus or minus command
+        if (x > 0):
             success1 = self.forward_cm(x)
-        elif(x < 0):
+        elif (x < 0):
             success1 = self.backward_cm(x)
         else:
             # we asked it to go 0 so we assume it did just that
             success1 = True
 
-        #making the drone move in y by sending the approprate plus or minus command
-        if(y > 0):
+        # making the drone move in y by sending the approprate plus or minus command
+        if (y > 0):
             success2 = self.left_cm(y)
-        elif(y < 0):
+        elif (y < 0):
             success2 = self.right_cm(y)
         else:
             # we asked it to go 0 so we assume it did just that
@@ -497,13 +501,13 @@ class Tello:
         :param speed: speed in cm/s, valid range [10,100]
         :return: nothing
         """
-        x = self._ensure_distance_within_limits(x)
-        y = self._ensure_distance_within_limits(y)
-        z = self._ensure_distance_within_limits(z)
+        # symmetrical moding to stay withen range
+        x = x % 500 if x >= 0 else x % -500
+        y = y % 500 if y >= 0 else y % -500
+        z = z % 500 if z >= 0 else z % -500
         speed = self._ensure_speed_within_limits(speed)
 
         self._send_command_no_wait("go %d %d %d %d" % (x, y, z, speed))
-
 
     def turn_degrees(self, degrees):
         """
@@ -512,20 +516,19 @@ class Tello:
         :return: True if the command succeeded and False otherwise
         """
 
-        if(degrees > 0):
+        if (degrees > 0):
             # ensure the degrees are within (0, 360]
-            while(degrees > 360):
+            while (degrees > 360):
                 degrees = degrees - 360
 
             return self._send_command_wait_for_response("cw %d" % degrees)
 
-        if(degrees < 0):
+        if (degrees < 0):
             # ensure the degrees are within (0, -360]
-            while(degrees < -360):
+            while (degrees < -360):
                 degrees = degrees + 360
 
             return self._send_command_wait_for_response("ccw %d" % -degrees)
-
 
     def turn_on_mission_pads(self):
         """
@@ -597,7 +600,8 @@ class Tello:
 
         speed = self._ensure_speed_within_limits(speed)
 
-        return self._send_command_wait_for_response("go %d %d %d %d m%d" % (x, y, z, speed, mission_id))
+        return self._send_command_wait_for_response(
+            "go %d %d %d %d m%d" % (x, y, z, speed, mission_id))
 
     def set_speed(self, new_speed):
         """
@@ -615,7 +619,8 @@ class Tello:
         :return: the battery percentage (from 0-100)
         """
 
-        battteryPercentage = self._send_command_wait_for_numeric_response("battery?")
+        battteryPercentage = self._send_command_wait_for_numeric_response(
+            "battery?")
         return battteryPercentage
 
     def check_current_speed(self):
@@ -634,7 +639,8 @@ class Tello:
         :return: Current flight time of the drone
         """
 
-        currentFlightTime = self._send_command_wait_for_numeric_response("time?")
+        currentFlightTime = self._send_command_wait_for_numeric_response(
+            "time?")
 
         return currentFlightTime
 
