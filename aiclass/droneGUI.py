@@ -7,6 +7,9 @@ Amy McGovern dramymcgovern@gmail.com
 
 from tkinter import *
 import numpy as np
+import math
+
+from aiclass.droneRoom import *
 
 class DroneGUI:
     def __init__(self, pixels_per_cm, room):
@@ -24,6 +27,8 @@ class DroneGUI:
         self.room = room
         self.asteroid_objects = dict()
         self.asteroid_labels = dict()
+        self.drone_objects = dict()
+        self.drone_labels = dict()
         self.quit_pressed = False
 
         # scale_value is the number of cm that 1 pixel represents
@@ -81,6 +86,11 @@ class DroneGUI:
             id = self.room_canvas.create_text(x, y, text=str(asteroid.id), fill="white")
             self.asteroid_labels[asteroid.id] = id
 
+        # Draw drones at their start location
+        for drone in self.room.drones:
+            translated_coordinates = self.get_translated_drone_polygon_coordinates(drone.location)
+            id = self.room_canvas.create_polygon(translated_coordinates)
+            self.drone_objects[drone.id] = id
 
         # actually draw the room
         self.root.update()
@@ -104,6 +114,15 @@ class DroneGUI:
             self.room_canvas.move(self.asteroid_labels[asteroid.id], dx, dy)
             self.room_canvas.move(self.asteroid_objects[asteroid.id], dx, dy)
 
+        for drone in self.room.drones:
+            x = self.translate_location_to_pixel(drone.location.x)
+            y = self.translate_location_to_pixel(drone.location.y)
+
+            old_coords = self.room_canvas.coords(self.drone_objects[drone.id])
+            dx = x - old_coords[0]
+            dy = y - old_coords[1]
+
+            self.room_canvas.move(self.drone_objects[drone.id], dx, dy)
 
         # update the drawing
         self.root.update()
@@ -130,3 +149,41 @@ class DroneGUI:
         self.timestep_label.config(text=str(timestep))
         self.info_window.update()
 
+    def get_translated_drone_polygon_coordinates(self, drone_position):
+        """
+        Translates coordinates from basic polygon to fit drone's current
+        position and orientation.
+
+        :param drone_position: Position of drone, should contain x, y, orientation
+        :return: polygon coordinates, translated to match drone's position/orientation
+        """
+        offset_x, offset_y, angle = drone_position.x, drone_position.y, drone_position.orientation
+        canvas_width = self.translate_location_to_pixel(self.room.length)
+        canvas_height = self.translate_location_to_pixel(self.room.width)
+        offset_x, offset_y = canvas_width/2, canvas_height/2
+        rotated_coordinates = [self.rotate(origin=(0, 0), point=shape_coord, angle=angle) for shape_coord in SHIP_SHAPE_SCALED]
+        translated_coordinates = [(x+offset_x, y+offset_y) for x, y in rotated_coordinates]
+        ### Debug code for drawing drone polygon
+        # print(f"Basic coordinates:{SHIP_SHAPE_SCALED}")
+        # print(f"Rotated coordinates:{rotated_coordinates}")
+        # print(f"Offset:{offset_x,offset_y}")
+        # print(f"Translated coordinates:{translated_coordinates}")
+        return translated_coordinates
+
+    def rotate(self, origin, point, angle):
+        """
+        https://stackoverflow.com/questions/34372480/rotate-point-about-another-point-in-degrees-python
+        Rotate a point counterclockwise by a given angle around a given origin.
+
+        :param angle: amount to rotate (radians)
+        :param origin: point around which to rotate (always 0,0 since it is relative to ship's centroid)
+        :param point: point that is being rotated (polygon coordinate)
+
+        The angle should be given in radians.
+        """
+        ox, oy = origin
+        px, py = point
+
+        qx = ox + math.cos(angle) * (px - ox) - math.sin(angle) * (py - oy)
+        qy = oy + math.sin(angle) * (px - ox) + math.cos(angle) * (py - oy)
+        return qx, qy

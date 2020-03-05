@@ -8,9 +8,25 @@ www.github.com/amymcgovern/spacesettlers
 
 import numpy as np
 
+# Drone polygon coordinates (raw)
+SHIP_SHAPE_UNSCALED = [(30, -50), (39, -40), (40, -35), (55, -60), (40, -60), (38, -68), (82, -68), (80, -60),
+                       (70, -60), (40, -15), (40, 15), (70, 60), (80, 60), (82, 68), (38, 68), (40, 60), (55, 60),
+                       (40, 35), (39, 40), (30, 50), (-30, 50), (-39, 40), (-40, 35), (-55, 60), (-40, 60), (-38, 68),
+                       (-82, 68), (-80, 60), (-70, 60), (-40, 15), (-40, -15), (-70, -60), (-80, -60), (-82, -68),
+                       (-38, -68), (-40, -60), (-55, -60), (-40, -35), (-39, -40), (-30, -50)]
+# Drone polygon coordinates (scaled to x0.3)
+SHIP_SHAPE_SCALED = [(9.0, -15.0), (11.7, -12.0), (12.0, -10.5), (16.5, -18.0), (12.0, -18.0), (11.4, -20.4),
+                     (24.6, -20.4), (24.0, -18.0), (21.0, -18.0), (12.0, -4.5), (12.0, 4.5), (21.0, 18.0), (24.0, 18.0),
+                     (24.6, 20.4), (11.4, 20.4), (12.0, 18.0), (16.5, 18.0), (12.0, 10.5), (11.7, 12.0), (9.0, 15.0),
+                     (-9.0, 15.0), (-11.7, 12.0), (-12.0, 10.5), (-16.5, 18.0), (-12.0, 18.0), (-11.4, 20.4),
+                     (-24.6, 20.4), (-24.0, 18.0), (-21.0, 18.0), (-12.0, 4.5), (-12.0, -4.5), (-21.0, -18.0),
+                     (-24.0, -18.0), (-24.6, -20.4), (-11.4, -20.4), (-12.0, -18.0), (-16.5, -18.0), (-12.0, -10.5),
+                     (-11.7, -12.0), (-9.0, -15.0)]
+
 # some user defined parameters
 max_velocity = 1.5 # m/s
 asteroid_radius = 0.4 # in meters (this is large initially)
+drone_radius = 0.3
 
 class Position:
     def __init__(self, x, y, orientation):
@@ -79,6 +95,20 @@ class Asteroid:
         else:
             self.velocity = Velocity(0, 0, 0)
 
+class Drone:
+    def __init__(self, position, id, tello):
+        """
+        Constructor skeleton. Includes fields necessary for rendering drone polygon
+
+        :param position: starting Position of the drone
+        :param id: UUID used to identify this drone
+        :param tello: pyTello instance (either simulated or real)
+        """
+        self.location = position
+        self.id = id
+        self.radius = drone_radius
+        self._tello = tello
+
 class DroneRoom:
     def __init__(self, length, width, num_obstacles, num_asteroids, is_simulated):
         """
@@ -103,6 +133,7 @@ class DroneRoom:
         if (self.is_simulated):
             # if we are in simulation mode, automatically create the asteroid and obstacle locations
             self.__initialize_asteroids(num_obstacles, num_asteroids)
+            self.__initialize_ship_random()
         else:
             print("Real world mode: make sure you initialize the locations for the asteroids and obstacles")
 
@@ -148,6 +179,18 @@ class DroneRoom:
             position = self.get_random_free_location(free_radius=10)
             self.add_asteroid(position, is_mineable=True, id=id)
             id+=1
+
+    def __initialize_ship_random(self):
+        """
+        Creates a single drone in a random location
+        :return:
+        """
+        id = 1
+        position = self.get_random_free_location(free_radius=10)
+        # Test angle for checking translation methods in droneGUI
+        import math
+        #position.orientation = 45/180 * math.pi
+        self.drones.append(Drone(position, id, tello=None))
 
     def get_random_free_location(self, free_radius):
         """
