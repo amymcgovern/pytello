@@ -94,10 +94,14 @@ class DroneRoom:
         max_tries = 5
         loc_found = False
 
-        x = np.random.random() * self.length
-        y = np.random.random() * self.width
+        x = 0
+        y = 0
 
         while (num_try < max_tries and not loc_found):
+            # try again
+            x = np.random.random() * self.length
+            y = np.random.random() * self.width
+
             loc_found = True
 
             # make sure it is far enough away
@@ -107,9 +111,6 @@ class DroneRoom:
                     loc_found = False
                     break
 
-            # try again
-            x = np.random.random() * self.length
-            y = np.random.random() * self.width
             num_try += 1
 
         return Position(x, y)
