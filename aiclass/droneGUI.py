@@ -103,7 +103,7 @@ class DroneGUI:
 
             x = self.translate_location_to_pixel(drone.location.x)
             y = self.translate_location_to_pixel(drone.location.y)
-            id = self.room_canvas.create_text(x, y, text=str(drone.id), fill="black")
+            id = self.room_canvas.create_text(x, y, text=str(drone.id), fill="white")
             self.drone_labels[drone.id] = id
 
         # actually draw the room
@@ -172,17 +172,11 @@ class DroneGUI:
         :param drone_position: Position of drone, should contain x, y, orientation
         :return: polygon coordinates, translated to match drone's position/orientation
         """
-        offset_x, offset_y, angle = drone_position.x, drone_position.y, drone_position.orientation
-        canvas_width = self.translate_location_to_pixel(self.room.length)
-        canvas_height = self.translate_location_to_pixel(self.room.width)
-        offset_x, offset_y = canvas_width/2, canvas_height/2
+        x, y, angle = drone_position.x, drone_position.y, drone_position.orientation
+        offset_x = self.translate_location_to_pixel(x)
+        offset_y = self.translate_location_to_pixel(y)
         rotated_coordinates = [self.rotate(origin=(0, 0), point=shape_coord, angle=angle) for shape_coord in SHIP_SHAPE_SCALED]
         translated_coordinates = [(x+offset_x, y+offset_y) for x, y in rotated_coordinates]
-        ### Debug code for drawing drone polygon
-        # print(f"Basic coordinates:{SHIP_SHAPE_SCALED}")
-        # print(f"Rotated coordinates:{rotated_coordinates}")
-        # print(f"Offset:{offset_x,offset_y}")
-        # print(f"Translated coordinates:{translated_coordinates}")
         return translated_coordinates
 
     def rotate(self, origin, point, angle):
