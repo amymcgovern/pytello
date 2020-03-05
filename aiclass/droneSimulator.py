@@ -4,7 +4,7 @@ A drone simulator for the AI class
 author: Amy McGovern <dramymcgovern@gmail.com>
 """
 
-from aiclass.droneRoom import DroneRoom
+from aiclass.droneRoom import DroneRoom, Drone
 from aiclass.droneGUI import DroneGUI
 import time
 
@@ -18,6 +18,7 @@ if __name__ == "__main__":
     num_asteroids = num_mission_pads - num_obstacles
 
     room = DroneRoom(length=room_length, width=room_width, num_obstacles=num_obstacles, num_asteroids=num_asteroids, is_simulated=True)
+    drone = room.add_random_simulated_drone(id=10, team_color="red")
 
     gui = DroneGUI(pixels_per_cm=20, room=room)
     gui.draw_room()

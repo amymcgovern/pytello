@@ -8,8 +8,16 @@ Amy McGovern dramymcgovern@gmail.com
 from tkinter import *
 import numpy as np
 import math
+from aiclass.droneRoom import drone_radius
 
-from aiclass.droneRoom import *
+# Drone polygon coordinates (raw)
+SHIP_SHAPE_UNSCALED = [(30, -50), (39, -40), (40, -35), (55, -60), (40, -60), (38, -68), (82, -68), (80, -60),
+                       (70, -60), (40, -15), (40, 15), (70, 60), (80, 60), (82, 68), (38, 68), (40, 60), (55, 60),
+                       (40, 35), (39, 40), (30, 50), (-30, 50), (-39, 40), (-40, 35), (-55, 60), (-40, 60), (-38, 68),
+                       (-82, 68), (-80, 60), (-70, 60), (-40, 15), (-40, -15), (-70, -60), (-80, -60), (-82, -68),
+                       (-38, -68), (-40, -60), (-55, -60), (-40, -35), (-39, -40), (-30, -50)]
+
+SHIP_SHAPE_SCALED = np.multiply(drone_radius, SHIP_SHAPE_UNSCALED)
 
 class DroneGUI:
     def __init__(self, pixels_per_cm, room):
@@ -89,8 +97,14 @@ class DroneGUI:
         # Draw drones at their start location
         for drone in self.room.drones:
             translated_coordinates = self.get_translated_drone_polygon_coordinates(drone.location)
-            id = self.room_canvas.create_polygon(translated_coordinates)
+            print(translated_coordinates)
+            id = self.room_canvas.create_polygon(translated_coordinates, fill=drone.team_color)
             self.drone_objects[drone.id] = id
+
+            x = self.translate_location_to_pixel(drone.location.x)
+            y = self.translate_location_to_pixel(drone.location.y)
+            id = self.room_canvas.create_text(x, y, text=str(drone.id), fill="black")
+            self.drone_labels[drone.id] = id
 
         # actually draw the room
         self.root.update()
@@ -123,6 +137,7 @@ class DroneGUI:
             dy = y - old_coords[1]
 
             self.room_canvas.move(self.drone_objects[drone.id], dx, dy)
+            self.room_canvas.move(self.drone_labels[drone.id], dx, dy)
 
         # update the drawing
         self.root.update()

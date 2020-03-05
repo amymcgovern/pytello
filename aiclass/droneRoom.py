@@ -8,25 +8,10 @@ www.github.com/amymcgovern/spacesettlers
 
 import numpy as np
 
-# Drone polygon coordinates (raw)
-SHIP_SHAPE_UNSCALED = [(30, -50), (39, -40), (40, -35), (55, -60), (40, -60), (38, -68), (82, -68), (80, -60),
-                       (70, -60), (40, -15), (40, 15), (70, 60), (80, 60), (82, 68), (38, 68), (40, 60), (55, 60),
-                       (40, 35), (39, 40), (30, 50), (-30, 50), (-39, 40), (-40, 35), (-55, 60), (-40, 60), (-38, 68),
-                       (-82, 68), (-80, 60), (-70, 60), (-40, 15), (-40, -15), (-70, -60), (-80, -60), (-82, -68),
-                       (-38, -68), (-40, -60), (-55, -60), (-40, -35), (-39, -40), (-30, -50)]
-# Drone polygon coordinates (scaled to x0.3)
-SHIP_SHAPE_SCALED = [(9.0, -15.0), (11.7, -12.0), (12.0, -10.5), (16.5, -18.0), (12.0, -18.0), (11.4, -20.4),
-                     (24.6, -20.4), (24.0, -18.0), (21.0, -18.0), (12.0, -4.5), (12.0, 4.5), (21.0, 18.0), (24.0, 18.0),
-                     (24.6, 20.4), (11.4, 20.4), (12.0, 18.0), (16.5, 18.0), (12.0, 10.5), (11.7, 12.0), (9.0, 15.0),
-                     (-9.0, 15.0), (-11.7, 12.0), (-12.0, 10.5), (-16.5, 18.0), (-12.0, 18.0), (-11.4, 20.4),
-                     (-24.6, 20.4), (-24.0, 18.0), (-21.0, 18.0), (-12.0, 4.5), (-12.0, -4.5), (-21.0, -18.0),
-                     (-24.0, -18.0), (-24.6, -20.4), (-11.4, -20.4), (-12.0, -18.0), (-16.5, -18.0), (-12.0, -10.5),
-                     (-11.7, -12.0), (-9.0, -15.0)]
-
 # some user defined parameters
 max_velocity = 1.5 # m/s
 asteroid_radius = 0.4 # in meters (this is large initially)
-drone_radius = 0.3
+drone_radius = 0.1 # in meters
 
 class Position:
     def __init__(self, x, y, orientation):
@@ -96,24 +81,26 @@ class Asteroid:
             self.velocity = Velocity(0, 0, 0)
 
 class Drone:
-    def __init__(self, position, id, tello):
+    def __init__(self, position, id, team_color, tello):
         """
-        Constructor skeleton. Includes fields necessary for rendering drone polygon
+        Create a drone object for the simulator (and use the real drone if this isn't simulation)
 
         :param position: starting Position of the drone
         :param id: UUID used to identify this drone
+        :param team_color: color to paint the drone (set by the user)
         :param tello: pyTello instance (either simulated or real)
         """
         self.location = position
         self.id = id
         self.radius = drone_radius
+        self.team_color = team_color
         self._tello = tello
 
 class DroneRoom:
     def __init__(self, length, width, num_obstacles, num_asteroids, is_simulated):
         """
-        Create the empty droneRoom for flying.  The user needs to add the right drone
-        objects for simulator or real flying via add_drone(drone)
+        Create the empty droneRoom for flying. The user needs to add the drones (since there may be more than one
+        and even more than one team)
 
         :param length: length of the room
         :param width: width of the room
@@ -133,7 +120,6 @@ class DroneRoom:
         if (self.is_simulated):
             # if we are in simulation mode, automatically create the asteroid and obstacle locations
             self.__initialize_asteroids(num_obstacles, num_asteroids)
-            self.__initialize_ship_random()
         else:
             print("Real world mode: make sure you initialize the locations for the asteroids and obstacles")
 
@@ -180,17 +166,17 @@ class DroneRoom:
             self.add_asteroid(position, is_mineable=True, id=id)
             id+=1
 
-    def __initialize_ship_random(self):
+    def add_random_simulated_drone(self, id, team_color):
         """
-        Creates a single drone in a random location
-        :return:
+        Creates a new drone in a random location
+
+        :return the random drone
         """
-        id = 1
         position = self.get_random_free_location(free_radius=10)
-        # Test angle for checking translation methods in droneGUI
-        import math
-        #position.orientation = 45/180 * math.pi
-        self.drones.append(Drone(position, id, tello=None))
+        position.orientation = np.random.random() * np.pi * 2.0
+        drone = Drone(position, id, tello=None, team_color=team_color)
+        self.add_drone(drone)
+        return drone
 
     def get_random_free_location(self, free_radius):
         """
@@ -216,7 +202,7 @@ class DroneRoom:
             # make sure it is far enough away
             for asteroid in self.asteroids:
                 dist = asteroid.location.distance_from_x_y(x, y)
-                if (dist < free_radius or x - asteroid.radius < 0 or y - asteroid.radius < 0):
+                if (dist < free_radius or x - free_radius < 0 or y - free_radius < 0):
                     loc_found = False
                     break
 
