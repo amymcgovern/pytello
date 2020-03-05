@@ -1,6 +1,9 @@
 """
 Manages the room and obstacles where the drone flies in (represents
-a real room but can be used without an actual room if the drone is in simulated mode)
+a real room but can be used without an actual room if the drone is in simulated mode).
+This is a very specific implementation that mimics the spacesettlers code used by
+the rest of the AI class.
+www.github.com/amymcgovern/spacesettlers
 """
 
 import numpy as np
@@ -78,6 +81,16 @@ class Asteroid:
 
 class DroneRoom:
     def __init__(self, length, width, num_obstacles, num_asteroids, is_simulated):
+        """
+        Create the empty droneRoom for flying.  The user needs to add the right drone
+        objects for simulator or real flying via add_drone(drone)
+
+        :param length: length of the room
+        :param width: width of the room
+        :param num_obstacles: number of obstacles (things to not land on)
+        :param num_asteroids: number of asteroids (things that give you resources)
+        :param is_simulated: is this a simulator or flying in the real-world?
+        """
         self.length = length
         self.width = width
         self.num_obstacles = num_obstacles
@@ -85,12 +98,21 @@ class DroneRoom:
         self.is_simulated = is_simulated
         self.asteroids = list()
         self.timestep = 0.05
+        self.drones = list()
 
         if (self.is_simulated):
             # if we are in simulation mode, automatically create the asteroid and obstacle locations
             self.__initialize_asteroids(num_obstacles, num_asteroids)
         else:
             print("Real world mode: make sure you initialize the locations for the asteroids and obstacles")
+
+    def add_drone(self, drone):
+        """
+        Add the drone (simulated if we are in simulation mode and real if not) to the list of drones
+
+        :param drone: drone object (either pyTello or a simulated pyTello)
+        """
+        self.drones.append(drone)
 
     def add_asteroid(self, position, id, is_mineable=True):
         """
@@ -172,11 +194,13 @@ class DroneRoom:
             new_x = asteroid.location.x + (asteroid.velocity.x * np.cos(asteroid.velocity.rotational)) * self.timestep
             new_y = asteroid.location.y + (asteroid.velocity.y * np.sin(asteroid.velocity.rotational)) * self.timestep
 
-            if (new_x < 0 or new_x > self.length):
+            # handle wall collisions (note, collisions between asteroids are ignored since
+            # we assume they will not happen in the real-world
+            if (new_x - asteroid_radius < 0 or new_x + asteroid_radius > self.length):
                 new_x = asteroid.location.x
                 asteroid.velocity.x = -asteroid.velocity.x
 
-            if (new_y < 0 or new_y > self.width):
+            if (new_y - asteroid_radius < 0 or new_y + asteroid_radius > self.width):
                 new_y = asteroid.location.y
                 asteroid.velocity.y = -asteroid.velocity.y
 
@@ -185,3 +209,6 @@ class DroneRoom:
             asteroid.location.x = new_x
             asteroid.location.y = new_y
 
+
+        # update the drone's location
+        # TODO

@@ -28,5 +28,4 @@ if __name__ == "__main__":
         gui.update_room(room)
         time.sleep(gui_pause)
 
-    input("press return to quit")
 
