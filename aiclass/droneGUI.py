@@ -122,6 +122,11 @@ class DroneGUI:
         self.timestep_label.pack()
 
     def update_extra_info(self, timestep):
+        """
+        Update the extra info
+
+        :param timestep:
+        """
         self.timestep_label.config(text=str(timestep))
         self.info_window.update()
 
