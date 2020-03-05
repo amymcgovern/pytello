@@ -21,11 +21,17 @@ if __name__ == "__main__":
 
     gui = DroneGUI(pixels_per_cm=20, room=room)
     gui.draw_room()
+    gui.draw_extra_info()
 
     # now advance time
     for step in range(1, num_timesteps):
+        if (gui.quit_pressed):
+            print("Quitting!")
+            break
+
         room.advance_time()
         gui.update_room(room)
+        gui.update_extra_info(step)
         time.sleep(gui_pause)
 
 

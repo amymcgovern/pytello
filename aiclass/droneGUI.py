@@ -24,6 +24,7 @@ class DroneGUI:
         self.room = room
         self.asteroid_objects = dict()
         self.asteroid_labels = dict()
+        self.quit_pressed = False
 
         # scale_value is the number of cm that 1 pixel represents
         self.pixels_per_cm = pixels_per_cm
@@ -84,6 +85,7 @@ class DroneGUI:
         # actually draw the room
         self.root.update()
 
+
     def update_room(self, room):
         """
         Update the objects inside the room (but no need to redraw the canvas)
@@ -105,3 +107,21 @@ class DroneGUI:
 
         # update the drawing
         self.root.update()
+
+    def draw_extra_info(self):
+        """
+        Draw a window with a quit button and some basic information
+        """
+        self.info_window = Toplevel(self.root)
+        self.info_window.title("Drones Info")
+
+        timestep = Label(self.info_window, text="Timestep: ")
+        timestep.pack()
+
+        self.timestep_label = Label(self.info_window, text="0")
+        self.timestep_label.pack()
+
+    def update_extra_info(self, timestep):
+        self.timestep_label.config(text=str(timestep))
+        self.info_window.update()
+
