@@ -22,6 +22,8 @@ class DroneGUI:
         self.goal_color = "green"
         self.start_color = "red"
         self.room = room
+        self.asteroid_objects = dict()
+        self.asteroid_labels = dict()
 
         # scale_value is the number of cm that 1 pixel represents
         self.pixels_per_cm = pixels_per_cm
@@ -72,9 +74,34 @@ class DroneGUI:
             else:
                 fill_color = "#B59892"
 
-            self.room_canvas.create_oval(x-radius, y-radius, x+radius, y+radius, fill=fill_color)
-            self.room_canvas.create_text(x, y, text=str(asteroid.id), fill="white")
+            id = self.room_canvas.create_oval(x-radius, y-radius, x+radius, y+radius, fill=fill_color)
+            self.asteroid_objects[asteroid.id] = id
+
+            id = self.room_canvas.create_text(x, y, text=str(asteroid.id), fill="white")
+            self.asteroid_labels[asteroid.id] = id
 
 
         # actually draw the room
+        self.root.update()
+
+    def update_room(self, room):
+        """
+        Update the objects inside the room (but no need to redraw the canvas)
+        :param room: the room simulator object (so we can redraw locations)
+        :return:
+        """
+        for asteroid in self.room.asteroids:
+            x = self.translate_location_to_pixel(asteroid.location.x)
+            y = self.translate_location_to_pixel(asteroid.location.y)
+            radius = self.translate_location_to_pixel(asteroid.radius)
+
+            old_coords = self.room_canvas.coords(self.asteroid_labels[asteroid.id])
+            dx = x - old_coords[0]
+            dy = y - old_coords[1]
+
+            self.room_canvas.move(self.asteroid_labels[asteroid.id], dx, dy)
+            self.room_canvas.move(self.asteroid_objects[asteroid.id], dx, dy)
+
+
+        # update the drawing
         self.root.update()
