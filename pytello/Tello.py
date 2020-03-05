@@ -19,7 +19,8 @@ from datetime import datetime
 import time
 
 class Tello:
-    def __init__(self, ip_address="192.168.10.1", port=8889):
+    def __init__(self, ip_address="192.168.10.1", port=8889, video=False):
+        # video arg added by Katy - set it to True to use video streaming
         self.tello_address = (ip_address, port)
 
         self.is_listening = True
@@ -27,6 +28,9 @@ class Tello:
         self.sensor_dict = dict()
 
         self._create_udp_connection()
+
+        if video:
+            self._create_video_connection()
 
         # amount of time to wait in between commands (if waiting for a response)
         self.time_between_commands = 1
@@ -64,7 +68,6 @@ class Tello:
             self.sock.bind(('', 8889))
         except:
             print("Error binding to the command receive socket")
-
 
     def _listen_state_socket(self):
         """
@@ -667,3 +670,34 @@ class Tello:
         droneSDK = self._send_command_wait_for_numeric_response("sdk?")
 
         return droneSDK
+
+    ##### VIDEO STUFF
+    def _create_video_connection(self):
+        """Create UDP connection for video stream"""
+        self.video_sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+        self.video_sock.settimeout(5.0)
+        self.video_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+        try:
+            self.state_sock.bind(('0.0.0.0', 11111))
+        except:
+            print("Error binding to the video stream socket")
+
+    def open_video(self):
+        """open the drone's video stream"""
+        success = self._send_command_wait_for_response("streamon")
+        if success:
+            print("successfully opened video stream")
+        else:
+            print("failed to open video stream")
+        return success
+
+    def close_video(self):
+        """close the drone's video stream"""
+        success = self._send_command_wait_for_response("streamoff")
+        if success:
+            print("successfully closed video stream")
+        else:
+            print("failed to close video stream")
+        return success
+
