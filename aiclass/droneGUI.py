@@ -28,6 +28,11 @@ class DroneGUI:
         :param room: the droneRoom room (needed to draw and query obstacles)
         """
         self.root = Tk()
+        self.room_frame = Frame(self.root, highlightthickness=5, highlightcolor="black", highlightbackground="black")
+        self.room_frame.grid(row=0, column=0)
+        self.extra_frame = Frame(self.root)
+        self.extra_frame.grid(row=0, column=1)
+
         self.room_map = None
         self.obstacle_color = "#7575a3"
         self.goal_color = "green"
@@ -57,7 +62,8 @@ class DroneGUI:
         canvas_height = self.translate_location_to_pixel(self.room.width)
 
         # draw the room
-        self.room_canvas = Canvas(self.root, width=canvas_width, height=canvas_height, bg="#ffffe6")
+        self.room_canvas = Canvas(self.room_frame, width=canvas_width, height=canvas_height, bg="#ffffe6",
+                                  highlightthickness=0, borderwidth=0)
         self.room_canvas.pack()
 
         # how to draw a checkered canvas from
@@ -161,8 +167,8 @@ class DroneGUI:
         """
         Draw a window with a quit button and some basic information
         """
-        self.info_window = Toplevel(self.root)
-        self.info_window.title("Drones Info")
+        self.info_window = self.extra_frame
+        #self.info_window.title("Drones Info")
 
         timestep = Label(self.info_window, text="Timestep: ")
         timestep.pack()
