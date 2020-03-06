@@ -8,7 +8,7 @@ Amy McGovern dramymcgovern@gmail.com
 from tkinter import *
 import numpy as np
 import math
-from aiclass.droneRoom import drone_radius
+from aiclass.droneSimulator import drone_radius
 
 # Drone polygon coordinates (raw)
 SHIP_SHAPE_UNSCALED = [(30, -50), (39, -40), (40, -35), (55, -60), (40, -60), (38, -68), (82, -68), (80, -60),
