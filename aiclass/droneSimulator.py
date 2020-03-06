@@ -116,7 +116,6 @@ class Drone:
         """
         self.velocity = velocity
 
-
 class DroneSimulator:
     def __init__(self, length, width, height, num_obstacles, num_asteroids, is_simulated):
         """
@@ -144,7 +143,7 @@ class DroneSimulator:
             # if we are in simulation mode, automatically create the asteroid and obstacle locations
             self.__initialize_asteroids(num_obstacles, num_asteroids)
         else:
-            print("Real world mode: make sure you initialize the locations for the asteroids and obstacles")
+            print("Real world mode: make sure you initialize the locations and velocities for the asteroids and obstacles and drone")
 
     def add_drone(self, drone):
         """

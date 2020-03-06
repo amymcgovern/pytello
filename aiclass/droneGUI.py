@@ -38,6 +38,7 @@ class DroneGUI:
         self.drone_objects = dict()
         self.drone_labels = dict()
         self.quit_pressed = False
+        self.pause_pressed = False
 
         # scale_value is the number of cm that 1 pixel represents
         self.pixels_per_cm = pixels_per_cm
@@ -108,6 +109,7 @@ class DroneGUI:
 
         # actually draw the room
         self.root.update()
+        self.root.update_idletasks()
 
 
     def update_room(self, room):
@@ -141,6 +143,19 @@ class DroneGUI:
 
         # update the drawing
         self.root.update()
+        self.root.update_idletasks()
+
+    def _quit_button_pressed(self):
+        """
+        If quit is pressed, let the user know and be able to query it to stop nicely
+        """
+        self.quit_pressed = True
+
+    def _pause_button_pressed(self):
+        """
+        Toggle the pause status
+        """
+        self.pause_pressed = not self.pause_pressed
 
     def draw_extra_info(self):
         """
@@ -155,6 +170,12 @@ class DroneGUI:
         self.timestep_label = Label(self.info_window, text="0")
         self.timestep_label.pack()
 
+        self.quit_button = Button(self.info_window, text="Quit", command=self._quit_button_pressed)
+        self.quit_button.pack()
+
+        self.pause_button = Button(self.info_window, text="Pause", command=self._pause_button_pressed)
+        self.pause_button.pack()
+
     def update_extra_info(self, timestep):
         """
         Update the extra info
@@ -163,6 +184,7 @@ class DroneGUI:
         """
         self.timestep_label.config(text=str(timestep))
         self.info_window.update()
+        self.root.update_idletasks()
 
     def get_translated_drone_polygon_coordinates(self, drone_position):
         """
