@@ -27,12 +27,16 @@ if __name__ == "__main__":
     gui.draw_extra_info()
 
     # now advance time
-    for step in range(1, num_timesteps):
+    step = 0
+    while (not gui.quit_pressed or step < num_timesteps):
         if (gui.quit_pressed):
             print("Quitting!")
             break
 
-        room.advance_time()
+        if (not gui.pause_pressed):
+            room.advance_time()
+            step += 1
+
         gui.update_room(room)
         gui.update_extra_info(step)
         time.sleep(gui_pause)
