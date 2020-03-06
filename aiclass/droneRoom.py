@@ -14,16 +14,18 @@ asteroid_radius = 0.4 # in meters (this is large initially)
 drone_radius = 0.1 # in meters
 
 class Position:
-    def __init__(self, x, y, orientation):
+    def __init__(self, x, y, z=0, orientation=0):
         """
         Create a new position with orientation optional
 
         :param x: x
         :param y: y
+        :param z: z (height, optional)
         :param orientation: optional orientation (needed for movement)
         """
         self.x = x
         self.y = y
+        self.z = z
         self.orientation = orientation
 
     def distance_from_position(self, other):
@@ -32,7 +34,7 @@ class Position:
         :param other:
         :return: euclidean distance
         """
-        dist = np.sqrt(np.square(self.x - other.x) + np.square(self.y - other.y))
+        dist = np.sqrt(np.square(self.x - other.x) + np.square(self.y - other.y) + np.square(self.z - other.z))
         return dist
 
     def distance_from_x_y(self, x, y):
@@ -48,9 +50,10 @@ class Velocity:
     """
     Velocity vector (by components)
     """
-    def __init__(self, x, y, rotational):
+    def __init__(self, x, y, z, rotational):
         self.x = x
         self.y = y
+        self.z = z
         self.rotational = rotational
 
 class Asteroid:
@@ -75,10 +78,10 @@ class Asteroid:
         if (is_moveable):
             x = np.random.random() * 2.0 * max_velocity - max_velocity
             y = np.random.random() * 2.0 * max_velocity - max_velocity
-            orientation = np.random.random() * np.pi * 2.0
-            self.velocity = Velocity(x, y, orientation)
+            rotational_change = (np.random.random() * 0.2) - 0.1
+            self.velocity = Velocity(x, y, z=0, rotational=rotational_change)
         else:
-            self.velocity = Velocity(0, 0, 0)
+            self.velocity = Velocity(0, 0, 0, 0)
 
 class Drone:
     def __init__(self, position, id, team_color, tello):
@@ -88,28 +91,48 @@ class Drone:
         :param position: starting Position of the drone
         :param id: UUID used to identify this drone
         :param team_color: color to paint the drone (set by the user)
-        :param tello: pyTello instance (either simulated or real)
+        :param tello: pyTello instance - set to None for simulated drones
         """
         self.location = position
+        self.velocity = Velocity(x=0, y=0, z=0, rotational=0)
         self.id = id
         self.radius = drone_radius
         self.team_color = team_color
         self._tello = tello
+        self.is_crashed = False
+
+    def set_location(self, position):
+        """
+        Set the drone to a specific (x, y, z) location
+
+        :param position: Position object
+        """
+        self.location = position
+
+    def set_velocity(self, velocity):
+        """
+        Set the drone to a specific velocity
+        :param velocity: Velocity object
+        """
+        self.velocity = velocity
+
 
 class DroneRoom:
-    def __init__(self, length, width, num_obstacles, num_asteroids, is_simulated):
+    def __init__(self, length, width, height, num_obstacles, num_asteroids, is_simulated):
         """
         Create the empty droneRoom for flying. The user needs to add the drones (since there may be more than one
         and even more than one team)
 
         :param length: length of the room
         :param width: width of the room
+        :param height: height of the room (if the drone exceeds this, it is "crashed" on the ground where it exceeded it
         :param num_obstacles: number of obstacles (things to not land on)
         :param num_asteroids: number of asteroids (things that give you resources)
         :param is_simulated: is this a simulator or flying in the real-world?
         """
         self.length = length
         self.width = width
+        self.height = height
         self.num_obstacles = num_obstacles
         self.num_asteroids = num_asteroids
         self.is_simulated = is_simulated
@@ -180,7 +203,8 @@ class DroneRoom:
 
     def get_random_free_location(self, free_radius):
         """
-        Return a random location that does not overlap any asteroids within the specified radius
+        Return a random location that does not overlap any asteroids within the specified radius.
+        Note locations all start on the ground (z = 0 and at orientation=0)
 
         :param free_radius:
         :return:
@@ -194,8 +218,8 @@ class DroneRoom:
 
         while (num_try < max_tries and not loc_found):
             # try again
-            x = np.random.random() * self.length
-            y = np.random.random() * self.width
+            x = np.random.random() * (self.length - free_radius)
+            y = np.random.random() * (self.width - free_radius)
 
             loc_found = True
 
@@ -208,7 +232,7 @@ class DroneRoom:
 
             num_try += 1
 
-        return Position(x, y, 0)
+        return Position(x, y, z=0, orientation=0)
 
     def advance_time(self):
         """
@@ -220,8 +244,10 @@ class DroneRoom:
         # step one, move all the asteroids
         for asteroid in self.asteroids:
             #print(asteroid.location.x, asteroid.location.y)
-            new_x = asteroid.location.x + (asteroid.velocity.x * np.cos(asteroid.velocity.rotational)) * self.timestep
-            new_y = asteroid.location.y + (asteroid.velocity.y * np.sin(asteroid.velocity.rotational)) * self.timestep
+            new_x = asteroid.location.x + (asteroid.velocity.x * np.cos(asteroid.location.orientation)) * self.timestep
+            new_y = asteroid.location.y + (asteroid.velocity.y * np.sin(asteroid.location.orientation)) * self.timestep
+            new_angle = asteroid.location.orientation + (asteroid.velocity.rotational * self.timestep)
+            new_angle = np.mod(new_angle, np.pi * 2.0)
 
             # handle wall collisions (note, collisions between asteroids are ignored since
             # we assume they will not happen in the real-world
@@ -237,7 +263,27 @@ class DroneRoom:
             #print(new_x, new_y)
             asteroid.location.x = new_x
             asteroid.location.y = new_y
+            asteroid.location.orientation = new_angle
 
 
         # update the drone's location
-        # TODO
+        for drone in self.drones:
+            new_x = drone.location.x + (drone.velocity.x * np.cos(drone.location.orientation)) * self.timestep
+            new_y = drone.location.y + (drone.velocity.y * np.sin(drone.location.orientation)) * self.timestep
+            new_z = drone.location.z + (drone.velocity.z * self.timestep)
+            new_angle = drone.location.orientation + (drone.velocity.rotational * self.timestep)
+            new_angle = np.mod(new_angle, np.pi * 2.0)
+
+            # wall or ceiling collisions cause a crash
+            if (new_x - drone_radius < 0 or new_x + drone_radius > self.length or
+                new_y - drone_radius < 0 or new_y + drone_radius > self.width or
+                new_z < 0 or new_z + drone_radius > self.height):
+                new_z = 0
+                drone.is_crashed = True
+                drone.velocity = Velocity(0, 0, 0, 0)
+
+            # update the location
+            #print(new_x, new_y)
+            drone.location.x = new_x
+            drone.location.y = new_y
+            drone.location.z = new_z
