@@ -7,6 +7,8 @@ www.github.com/amymcgovern/spacesettlers
 """
 
 import numpy as np
+import time
+from datetime import datetime
 
 # some user defined parameters
 max_velocity = 1.5 # m/s
@@ -109,12 +111,54 @@ class Drone:
         """
         self.location = position
 
-    def set_velocity(self, velocity):
+    def _set_velocity(self, velocity):
         """
-        Set the drone to a specific velocity
+        Set the drone to a specific velocity.  Debugging only.  Otherwise it should be set
+        through movement calls
         :param velocity: Velocity object
         """
         self.velocity = velocity
+
+    def takeoff(self, seconds_to_wait=3):
+        """
+        Send takeoff to the drone (if it is exists) and otherwise set the simulator to move up in z
+
+        :param seconds_to_wait: optional number of seconds to sleep waiting for the takeoff to finish (default 3)
+        :return: True if the command was sent and False otherwise
+        """
+        if (self._tello is not None):
+            return self._tello.takeoff(seconds_to_wait=seconds_to_wait)
+        else:
+            self.velocity.z = 0.2
+            time.sleep(seconds_to_wait)
+            self.velocity.z = 0.0
+
+    def land(self, seconds_to_wait=3):
+        """
+        Send takeoff to the drone (if it is exists) and otherwise set the simulator to move up in z
+
+        :param seconds_to_wait: optional number of seconds to sleep waiting for the land to finish (default 3)
+        :return: True if the command was sent and False otherwise
+        """
+        if (self._tello is not None):
+            return self._tello.land(seconds_to_wait=seconds_to_wait)
+        else:
+            self.velocity.z = -0.2
+
+            start_time = datetime.now()
+            new_time = datetime.now()
+            diff = (new_time - start_time).seconds + ((new_time - start_time).microseconds / 1000000.0)
+
+            while (diff < seconds_to_wait):
+                time.sleep(0.01)
+                new_time = datetime.now()
+                diff = (new_time - start_time).seconds + ((new_time - start_time).microseconds / 1000000.0)
+                if (self.location.z < 0.05):
+                    self.velocity.z = 0.0
+                    self.location.z = 0.0
+
+            self.velocity.z = 0.0
+
 
 class DroneSimulator:
     def __init__(self, length, width, height, num_obstacles, num_asteroids, is_simulated):
@@ -136,7 +180,8 @@ class DroneSimulator:
         self.num_asteroids = num_asteroids
         self.is_simulated = is_simulated
         self.asteroids = list()
-        self.timestep = 0.05
+        self.physics_timestep = 0.05
+        self.sim_timestep = 0
         self.drones = list()
 
         if (self.is_simulated):
@@ -233,6 +278,13 @@ class DroneSimulator:
 
         return Position(x, y, z=0, orientation=0)
 
+    def get_timestep(self):
+        """
+        Get the current simulator timestep
+        :return:
+        """
+        return int(self.sim_timestep)
+
     def advance_time(self):
         """
         Advance time for the simulator one step
@@ -243,9 +295,9 @@ class DroneSimulator:
         # step one, move all the asteroids
         for asteroid in self.asteroids:
             #print(asteroid.location.x, asteroid.location.y)
-            new_x = asteroid.location.x + (asteroid.velocity.x * np.cos(asteroid.location.orientation)) * self.timestep
-            new_y = asteroid.location.y + (asteroid.velocity.y * np.sin(asteroid.location.orientation)) * self.timestep
-            new_angle = asteroid.location.orientation + (asteroid.velocity.rotational * self.timestep)
+            new_x = asteroid.location.x + (asteroid.velocity.x * np.cos(asteroid.location.orientation)) * self.physics_timestep
+            new_y = asteroid.location.y + (asteroid.velocity.y * np.sin(asteroid.location.orientation)) * self.physics_timestep
+            new_angle = asteroid.location.orientation + (asteroid.velocity.rotational * self.physics_timestep)
             new_angle = np.mod(new_angle, np.pi * 2.0)
 
             # handle wall collisions (note, collisions between asteroids are ignored since
@@ -259,7 +311,6 @@ class DroneSimulator:
                 asteroid.velocity.y = -asteroid.velocity.y
 
             # update the location
-            #print(new_x, new_y)
             asteroid.location.x = new_x
             asteroid.location.y = new_y
             asteroid.location.orientation = new_angle
@@ -267,22 +318,27 @@ class DroneSimulator:
 
         # update the drone's location
         for drone in self.drones:
-            new_x = drone.location.x + (drone.velocity.x * np.cos(drone.location.orientation)) * self.timestep
-            new_y = drone.location.y + (drone.velocity.y * np.sin(drone.location.orientation)) * self.timestep
-            new_z = drone.location.z + (drone.velocity.z * self.timestep)
-            new_angle = drone.location.orientation + (drone.velocity.rotational * self.timestep)
+            new_x = drone.location.x + (drone.velocity.x * np.cos(drone.location.orientation)) * self.physics_timestep
+            new_y = drone.location.y + (drone.velocity.y * np.sin(drone.location.orientation)) * self.physics_timestep
+            new_z = drone.location.z + (drone.velocity.z * self.physics_timestep)
+            new_angle = drone.location.orientation + (drone.velocity.rotational * self.physics_timestep)
             new_angle = np.mod(new_angle, np.pi * 2.0)
 
             # wall or ceiling collisions cause a crash
             if (new_x - drone_radius < 0 or new_x + drone_radius > self.length or
                 new_y - drone_radius < 0 or new_y + drone_radius > self.width or
                 new_z < 0 or new_z + drone_radius > self.height):
+                print("Drone crashed! %f %f %f" % (new_x, new_y, new_z))
                 new_z = 0
                 drone.is_crashed = True
                 drone.velocity = Velocity(0, 0, 0, 0)
 
             # update the location
-            #print(new_x, new_y)
+            #print(new_x, new_y, new_z)
             drone.location.x = new_x
             drone.location.y = new_y
             drone.location.z = new_z
+            drone.location.orientation = new_angle
+
+        # advance the simulator timestep
+        self.sim_timestep += 1

@@ -48,6 +48,10 @@ class DroneGUI:
         # scale_value is the number of cm that 1 pixel represents
         self.pixels_per_cm = pixels_per_cm
 
+        # draw the room and extra info
+        self.draw_room()
+        self.draw_extra_info()
+
     def translate_location_to_pixel(self, point):
         """
         translate a real-space coordinate to a pixel on the screen using the scales
@@ -110,7 +114,7 @@ class DroneGUI:
 
             x = self.translate_location_to_pixel(drone.location.x)
             y = self.translate_location_to_pixel(drone.location.y)
-            id = self.room_canvas.create_text(x, y, text=str(drone.id), fill="white")
+            id = self.room_canvas.create_text(x, y, text=str(drone.location.z), fill="black")
             self.drone_labels[drone.id] = id
 
         # actually draw the room
@@ -146,6 +150,8 @@ class DroneGUI:
 
             self.room_canvas.move(self.drone_objects[drone.id], dx, dy)
             self.room_canvas.move(self.drone_labels[drone.id], dx, dy)
+            height_str = str("%0.02f" % drone.location.z)
+            self.room_canvas.itemconfigure(self.drone_labels[drone.id], text=height_str)
 
         # update the drawing
         self.root.update()
