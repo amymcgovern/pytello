@@ -91,9 +91,9 @@ class Asteroid:
 
         if (self.is_mineable):
             # https://stackoverflow.com/questions/41383849/setting-the-fill-of-a-rectangle-drawn-with-canvas-to-an-rgb-value
-            fill_color = "#%02x%02x%02x" % (0, int(self.resources * 256), int(self.resources * 256))
+            self.fill_color = "#%02x%02x%02x" % (0, int(self.resources * 256), int(self.resources * 256))
         else:
-            fill_color = "#B59892"
+            self.fill_color = "#B59892"
 
 class Drone:
     def __init__(self, position, id, team_color, tello):
