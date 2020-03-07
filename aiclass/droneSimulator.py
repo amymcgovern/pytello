@@ -6,6 +6,8 @@ the rest of the AI class.
 www.github.com/amymcgovern/spacesettlers
 """
 
+
+
 import numpy as np
 import time
 from datetime import datetime
