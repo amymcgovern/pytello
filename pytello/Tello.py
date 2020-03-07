@@ -18,6 +18,48 @@ import threading
 from datetime import datetime
 import time
 
+def ensure_distance_within_limits(cm):
+    """
+    Internal function to ensure the distance is within the limits specified by the SDK [20,500]
+    :param distance: distance in cm
+    :return: the updated distance
+    """
+
+    # makes sure that distance is within the limits
+    if (cm == 0):
+        return 0
+
+    # distance can't be negative in our framework
+    if (cm < 0):
+        cm = abs(cm)
+
+    # ensure it is within bounds
+    if (cm < 20):
+        cm = 20
+    elif (cm > 500):
+        cm = 500
+
+    return cm
+
+
+def ensure_speed_within_limits(speed):
+    """
+    Internal function to ensure the distance is within the limits specified by the SDK [20,500]
+    :param distance: distance in cm
+    :return: the updated distance
+    """
+    # makes sure people aren't inputting negative numbers
+    cm = abs(speed)
+
+    if (cm >= 10):
+        if (cm > 100):
+            cm = 100
+    else:
+        # speed can't be less than 10
+        return 0
+    return cm
+
+
 class Tello:
     def __init__(self, ip_address="192.168.10.1", port=8889, video=False):
         # video arg added by Katy - set it to True to use video streaming
@@ -320,46 +362,6 @@ class Tello:
             self.sleep(timeToHover)
         return success
 
-    def _ensure_distance_within_limits(self, cm):
-        """
-        Internal function to ensure the distance is within the limits specified by the SDK [20,500]
-        :param distance: distance in cm
-        :return: the updated distance
-        """
-
-        #makes sure that distance is within the limits
-        if (cm == 0):
-            return 0
-
-        # distance can't be negative in our framework
-        if (cm < 0):
-            cm = abs(cm)
-
-        # ensure it is within bounds
-        if (cm < 20):
-            cm = 20
-        elif (cm > 500):
-            cm = 500
-
-        return cm
-
-    def _ensure_speed_within_limits(self, speed):
-        """
-        Internal function to ensure the distance is within the limits specified by the SDK [20,500]
-        :param distance: distance in cm
-        :return: the updated distance
-        """
-        # makes sure people aren't inputting negative numbers
-        cm = abs(speed)
-
-        if(cm >= 10):
-            if (cm > 100):
-                cm = 100
-        else:
-            # speed can't be less than 10
-            return 0
-        return cm
-
 
     def forward_cm(self, cm, speed=None):
         """
@@ -369,12 +371,12 @@ class Tello:
         :param speed: optional command to tell it to fly forward that much at a speed in the range [10,100] cm/s
         """
 
-        distance = self._ensure_distance_within_limits(cm)
+        distance = ensure_distance_within_limits(cm)
 
         if (speed is None):
             self._send_command_no_wait("forward %d" % distance)
         else:
-            speed = self._ensure_speed_within_limits(speed)
+            speed = ensure_speed_within_limits(speed)
             self._send_command_no_wait("go %d 0 0 %d" % (distance, speed))
 
     def backward_cm(self, cm, speed=None):
@@ -385,12 +387,12 @@ class Tello:
         :param speed: optional command to tell it to fly backward that much at a speed in the range [10,100] cm/s
         """
 
-        distance = self._ensure_distance_within_limits(cm)
+        distance = ensure_distance_within_limits(cm)
 
         if (speed is None):
             self._send_command_no_wait("back %d" % distance)
         else:
-            speed = self._ensure_speed_within_limits(speed)
+            speed = ensure_speed_within_limits(speed)
             self._send_command_no_wait("go -%d 0 0 %d" % (distance, speed))
 
     def left_cm(self, cm, speed=None):
@@ -401,12 +403,12 @@ class Tello:
         :param speed: optional command to tell it to fly left that much at a speed in the range [10,100] cm/s
         """
 
-        distance = self._ensure_distance_within_limits(cm)
+        distance = ensure_distance_within_limits(cm)
 
         if (speed is None):
             self._send_command_no_wait("left %d" % distance)
         else:
-            speed = self._ensure_speed_within_limits(speed)
+            speed = ensure_speed_within_limits(speed)
             self._send_command_no_wait("go 0 %d 0 %d" % (distance, speed))
 
     def right_cm(self, cm, speed=None):
@@ -417,12 +419,12 @@ class Tello:
         :param speed: optional command to tell it to fly right that much at a speed in the range [10,100] cm/s
         """
 
-        distance = self._ensure_distance_within_limits(cm)
+        distance = ensure_distance_within_limits(cm)
 
         if (speed is None):
             self._send_command_no_wait("right %d" % distance)
         else:
-            speed = self._ensure_speed_within_limits(speed)
+            speed = ensure_speed_within_limits(speed)
             self._send_command_no_wait("go 0 -%d 0 %d" % (distance, speed))
 
     def up_cm(self, cm, speed=None):
@@ -433,12 +435,12 @@ class Tello:
         :param speed: optional command to tell it to fly up that much at a speed in the range [10,100] cm/s
         """
 
-        distance = self._ensure_distance_within_limits(cm)
+        distance = ensure_distance_within_limits(cm)
 
         if (speed is None):
             self._send_command_no_wait("up %d" % distance)
         else:
-            speed = self._ensure_speed_within_limits(speed)
+            speed = ensure_speed_within_limits(speed)
             self._send_command_no_wait("go 0 0 %d %d" % (distance, speed))
 
     def down_cm(self, cm, speed=None):
@@ -449,12 +451,12 @@ class Tello:
         :param speed: optional command to tell it to fly down that much at a speed in the range [10,100] cm/s
         """
 
-        distance = self._ensure_distance_within_limits(cm)
+        distance = ensure_distance_within_limits(cm)
 
         if (speed is None):
             self._send_command_no_wait("down %d" % distance)
         else:
-            speed = self._ensure_speed_within_limits(speed)
+            speed = ensure_speed_within_limits(speed)
             self._send_command_no_wait("go 0 0 -%d %d" % (distance, speed))
 
     def move_rectilinear_cm(self, x, y):
@@ -468,8 +470,8 @@ class Tello:
         :return: True if both commands succeeded and False otherwise
         """
 
-        x = self._ensure_distance_within_limits(x)
-        y = self._ensure_distance_within_limits(y)
+        x = ensure_distance_within_limits(x)
+        y = ensure_distance_within_limits(y)
 
         #making the drone move in x by sending the approprate plus or minus command
         if(x > 0):
@@ -500,10 +502,10 @@ class Tello:
         :param speed: speed in cm/s, valid range [10,100]
         :return: nothing
         """
-        x = self._ensure_distance_within_limits(x)
-        y = self._ensure_distance_within_limits(y)
-        z = self._ensure_distance_within_limits(z)
-        speed = self._ensure_speed_within_limits(speed)
+        x = ensure_distance_within_limits(x)
+        y = ensure_distance_within_limits(y)
+        z = ensure_distance_within_limits(z)
+        speed = ensure_speed_within_limits(speed)
 
         self._send_command_no_wait("go %d %d %d %d" % (x, y, z, speed))
 
@@ -584,21 +586,21 @@ class Tello:
         :return:
         """
         if (x >= 0):
-            x = self._ensure_distance_within_limits(x)
+            x = ensure_distance_within_limits(x)
         else:
-            x = -self._ensure_distance_within_limits(-x)
+            x = -ensure_distance_within_limits(-x)
 
         if (y >= 0):
-            y = self._ensure_distance_within_limits(y)
+            y = ensure_distance_within_limits(y)
         else:
-            y = -self._ensure_distance_within_limits(-y)
+            y = -ensure_distance_within_limits(-y)
 
         if (z >= 0):
-            z = self._ensure_distance_within_limits(z)
+            z = ensure_distance_within_limits(z)
         else:
-            z = -self._ensure_distance_within_limits(-z)
+            z = -ensure_distance_within_limits(-z)
 
-        speed = self._ensure_speed_within_limits(speed)
+        speed = ensure_speed_within_limits(speed)
 
         return self._send_command_wait_for_response("go %d %d %d %d m%d" % (x, y, z, speed, mission_id))
 
@@ -608,7 +610,7 @@ class Tello:
         :param new_speed:
         :return: True if the command suceeded and False otherwise
         """
-        speed = self._ensure_speed_within_limits(new_speed)
+        speed = ensure_speed_within_limits(new_speed)
         return self._send_command_wait_for_response("speed %d" % speed)
 
     def check_battery_status(self):

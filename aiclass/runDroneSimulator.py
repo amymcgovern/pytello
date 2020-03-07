@@ -8,6 +8,7 @@ from aiclass.droneSimulator import DroneSimulator, Drone, Velocity
 from aiclass.droneGUI import DroneGUI
 import time
 import threading
+import numpy as np
 
 def user_drone_code(gui, drone, droneSimulator):
     """
@@ -26,7 +27,25 @@ def user_drone_code(gui, drone, droneSimulator):
             print("Takeoff")
             drone.takeoff()
             print("Done with takeoff")
-        elif (step == 200):
+        elif (step == 100):
+            print("Flying forward")
+            drone.forward_cm(100)
+        elif (step == 300):
+            print("Flying backward")
+            drone.backward_cm(500)
+        elif (step == 500):
+            print("Flying right")
+            drone.right_cm(200)
+        elif (step == 700):
+            print("Flying left")
+            drone.left_cm(300)
+        elif (step == 900):
+            print("Flying up")
+            drone.up_cm(30)
+        elif (step == 1100):
+            print("Flying down")
+            drone.down_cm(30)
+        elif (step == 1200):
             print("Landing")
             drone.land()
             print("Done with landing")
@@ -43,12 +62,13 @@ if __name__ == "__main__":
     num_mission_pads = 8
     num_obstacles = 3
     num_timesteps = 10000
-    gui_pause = 0.05
+    gui_pause = 0.01
     num_asteroids = num_mission_pads - num_obstacles
 
     # create the simulator
     room = DroneSimulator(length=room_length, width=room_width, height=room_height, num_obstacles=num_obstacles, num_asteroids=num_asteroids, is_simulated=True)
     drone = room.add_random_simulated_drone(id=1, team_color="red")
+    drone.location.orientation = np.pi/2.0
 
     # create the GUI
     gui = DroneGUI(pixels_per_cm=20, room=room)

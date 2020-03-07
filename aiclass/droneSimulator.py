@@ -9,9 +9,11 @@ www.github.com/amymcgovern/spacesettlers
 import numpy as np
 import time
 from datetime import datetime
+from pytello.Tello import ensure_distance_within_limits, ensure_speed_within_limits
+import copy
 
 # some user defined parameters
-max_velocity = 1.5 # m/s
+max_velocity = 0.5 # m/s
 asteroid_radius = 0.4 # in meters (this is large initially)
 drone_radius = 0.1 # in meters
 
@@ -102,6 +104,7 @@ class Drone:
         self.team_color = team_color
         self._tello = tello
         self.is_crashed = False
+        self.constant_speed = 0.5 # used because the tello allows a speed to be set, defaulting to 0.5 m/s
 
     def set_location(self, position):
         """
@@ -158,6 +161,282 @@ class Drone:
                     self.location.z = 0.0
 
             self.velocity.z = 0.0
+
+    def sleep(self, timeout):
+        """
+        Sleeps the requested number of seconds
+
+        :param timeout: number of seconds to sleep
+        :return:
+        """
+        if (self._tello is None):
+            time.sleep(timeout)
+        else:
+            self._tello.sleep(timeout)
+
+    def hover(self, timeToHover=None):
+        """
+        Makes the drone hover - optionally stay in hover for the time specified (which means all velocity is stopped)
+        :param timeToHover: time to sleep (optional)
+        :return: if it hovers or not
+        """
+        if (self._tello is not None):
+            return self._tello.hover(timeToHover)
+        else:
+            # stop all motion
+            self.velocity.x = 0
+            self.velocity.y = 0
+            self.velocity.z = 0
+            self.velocity.rotational = 0
+
+            if (timeToHover is not None):
+                time.sleep(timeToHover)
+
+    def forward_cm(self, cm, speed=None):
+        """
+        Moves ONLY FORWARD in cm.  If the user gives it a negative number, the number is made positive.
+        Also enforces cm between 20 and 500 (per SDK)
+        :param cm: amount to move FORWARDS in cm [20,500]
+        :param speed: optional command to tell it to fly forward that much at a speed in the range [10,100] cm/s
+        """
+
+        if (self._tello is None):
+            if (self.location.z > 0):
+                distance = ensure_distance_within_limits(cm)
+
+                if (speed is None):
+                    speed = self.constant_speed
+                else:
+                    speed = ensure_speed_within_limits(speed)
+
+                # set the right velocities
+                self.velocity.x = np.cos(self.location.orientation) * speed
+                self.velocity.y = np.sin(self.location.orientation) * speed
+                self.velocity.z = 0
+                self.velocity.rotational = 0
+
+                # and now check the distance traveled and stop if you reach it or if you crash
+                orig_location = copy.copy(self.location)
+                target_distance_m = distance / 100.0
+
+                while (orig_location.distance_from_x_y(self.location.x, self.location.y) < target_distance_m and not self.is_crashed):
+                    time.sleep(0.02)
+
+                # stop when you reach the right location
+                self.velocity.x = 0
+                self.velocity.y = 0
+
+        else:
+            # tell the tello to move
+            self._tello.forward_cm(cm, speed)
+
+
+    def backward_cm(self, cm, speed=None):
+        """
+        Moves ONLY BACKWARDS in cm. If the user gives it a negative number, the number is made positive.
+        Also enforces cm between 20 and 500 (per SDK)
+        :param cm: amount to move BACKWARDS in cm [20,500]
+        :param speed: optional command to tell it to fly backward that much at a speed in the range [10,100] cm/s
+        """
+
+        if (self._tello is None):
+            if (self.location.z > 0):
+                distance = ensure_distance_within_limits(cm)
+
+                if (speed is None):
+                    speed = self.constant_speed
+                else:
+                    speed = ensure_speed_within_limits(speed)
+
+                # set the right velocities
+                self.velocity.x = -np.cos(self.location.orientation) * speed
+                self.velocity.y = -np.sin(self.location.orientation) * speed
+                self.velocity.z = 0
+                self.velocity.rotational = 0
+
+                # and now check the distance traveled and stop if you reach it or if you crash
+                orig_location = copy.copy(self.location)
+                target_distance_m = distance / 100.0
+
+                while (orig_location.distance_from_x_y(self.location.x, self.location.y) < target_distance_m and not self.is_crashed):
+                    time.sleep(0.02)
+
+                # stop when you reach the right location
+                self.velocity.x = 0
+                self.velocity.y = 0
+
+        else:
+            # tell the tello to move
+            self._tello.backward_cm(cm, speed)
+
+    def left_cm(self, cm, speed=None):
+        """
+        Moves ONLY LEFT in cm. If the user gives it a negative number, the number is made positive.
+        Also enforces cm between 20 and 500 (per SDK)
+        :param cm: amount to move LEFT in cm [20,500]
+        :param speed: optional command to tell it to fly left that much at a speed in the range [10,100] cm/s
+        """
+
+        if (self._tello is None):
+            if (self.location.z > 0):
+                distance = ensure_distance_within_limits(cm)
+
+                if (speed is None):
+                    speed = self.constant_speed
+                else:
+                    speed = ensure_speed_within_limits(speed)
+
+                # set the right velocities
+                self.velocity.x = -np.sin(self.location.orientation) * speed
+                self.velocity.y = np.cos(self.location.orientation) * speed
+                self.velocity.z = 0
+                self.velocity.rotational = 0
+
+                # and now check the distance traveled and stop if you reach it or if you crash
+                orig_location = copy.copy(self.location)
+                target_distance_m = distance / 100.0
+
+                while (orig_location.distance_from_x_y(self.location.x, self.location.y) < target_distance_m and not self.is_crashed):
+                    time.sleep(0.02)
+
+                # stop when you reach the right location
+                self.velocity.x = 0
+                self.velocity.y = 0
+
+        else:
+            # tell the tello to move
+            self._tello.left_cm(cm, speed)
+
+    def right_cm(self, cm, speed=None):
+        """
+        Moves ONLY RIGHT in cm. If the user gives it a negative number, the number is made positive.
+        Also enforces cm between 20 and 500 (per SDK)
+        :param cm: amount to move RIGHT in cm [20,500]
+        :param speed: optional command to tell it to fly right that much at a speed in the range [10,100] cm/s
+        """
+
+        if (self._tello is None):
+            if (self.location.z > 0):
+                distance = ensure_distance_within_limits(cm)
+
+                if (speed is None):
+                    speed = self.constant_speed
+                else:
+                    speed = ensure_speed_within_limits(speed)
+
+                # set the right velocities
+                self.velocity.x = np.sin(self.location.orientation) * speed
+                self.velocity.y = np.cos(self.location.orientation) * speed
+                print(self.velocity.x, self.velocity.y)
+                self.velocity.z = 0
+                self.velocity.rotational = 0
+
+                # and now check the distance traveled and stop if you reach it or if you crash
+                orig_location = copy.copy(self.location)
+                target_distance_m = distance / 100.0
+
+                while (orig_location.distance_from_x_y(self.location.x, self.location.y) < target_distance_m and not self.is_crashed):
+                    time.sleep(0.01)
+
+                # stop when you reach the right location
+                self.velocity.x = 0
+                self.velocity.y = 0
+
+        else:
+            # tell the tello to move
+            self._tello.right_cm(cm, speed)
+
+    def up_cm(self, cm, speed=None):
+        """
+        Moves ONLY UP in cm. If the user gives it a negative number, the number is made positive.
+        Also enforces cm between 20 and 500 (per SDK)
+        :param cm: amount to move UP in cm [20,500]
+        :param speed: optional command to tell it to fly up that much at a speed in the range [10,100] cm/s
+        """
+
+        if (self._tello is None):
+            if (self.location.z > 0):
+                distance = ensure_distance_within_limits(cm)
+
+                if (speed is None):
+                    speed = self.constant_speed
+                else:
+                    speed = ensure_speed_within_limits(speed)
+
+                # set the right velocities
+                self.velocity.x = 0
+                self.velocity.y = 0
+                self.velocity.z = speed
+                self.velocity.rotational = 0
+
+                # and now check the distance traveled and stop if you reach it or if you crash
+                orig_location = copy.copy(self.location)
+                target_distance_m = distance / 100.0
+
+                while (orig_location.distance_from_position(self.location) < target_distance_m and not self.is_crashed):
+                    time.sleep(0.01)
+
+                # stop when you reach the right location
+                self.velocity.x = 0
+                self.velocity.y = 0
+                self.velocity.z = 0
+        else:
+            # tell the tello to move
+            self._tello.up_cm(cm, speed)
+
+    def down_cm(self, cm, speed=None):
+        """
+        Moves ONLY DOWN in cm. If the user gives it a negative number, the number is made positive.
+        Also enforces cm between 20 and 500 (per SDK)
+        :param cm: amount to move RIGHT in cm [20,500]
+        :param speed: optional command to tell it to fly down that much at a speed in the range [10,100] cm/s
+        """
+
+        if (self._tello is None):
+            if (self.location.z > 0):
+                distance = ensure_distance_within_limits(cm)
+
+                if (speed is None):
+                    speed = self.constant_speed
+                else:
+                    speed = ensure_speed_within_limits(speed)
+
+                # set the right velocities
+                self.velocity.x = 0
+                self.velocity.y = 0
+                self.velocity.z = -speed
+                self.velocity.rotational = 0
+
+                # and now check the distance traveled and stop if you reach it or if you crash
+                orig_location = copy.copy(self.location)
+                target_distance_m = distance / 100.0
+
+                while (orig_location.distance_from_position(self.location) < target_distance_m and not self.is_crashed):
+                    time.sleep(0.01)
+
+                # stop when you reach the right location
+                self.velocity.x = 0
+                self.velocity.y = 0
+                self.velocity.z = 0
+        else:
+            # tell the tello to move
+            self._tello.down_cm(cm, speed)
+
+    def set_speed(self, new_speed):
+        """
+        Set the default speed to the value specified in the range [10,100]
+        :param new_speed:
+        :return: True if the command suceeded and False otherwise
+        """
+
+        # keep track of the new speed in the simulator
+        speed = ensure_speed_within_limits(new_speed)
+        self.constant_speed = speed
+
+        # and send it to the tello if it exists
+        if (self._tello is not None):
+            # tell the tello to move
+            self._tello.set_speed(new_speed)
 
 
 class DroneSimulator:
@@ -295,8 +574,8 @@ class DroneSimulator:
         # step one, move all the asteroids
         for asteroid in self.asteroids:
             #print(asteroid.location.x, asteroid.location.y)
-            new_x = asteroid.location.x + (asteroid.velocity.x * np.cos(asteroid.location.orientation)) * self.physics_timestep
-            new_y = asteroid.location.y + (asteroid.velocity.y * np.sin(asteroid.location.orientation)) * self.physics_timestep
+            new_x = asteroid.location.x + asteroid.velocity.x * self.physics_timestep
+            new_y = asteroid.location.y + asteroid.velocity.y * self.physics_timestep
             new_angle = asteroid.location.orientation + (asteroid.velocity.rotational * self.physics_timestep)
             new_angle = np.mod(new_angle, np.pi * 2.0)
 
@@ -318,9 +597,13 @@ class DroneSimulator:
 
         # update the drone's location
         for drone in self.drones:
-            new_x = drone.location.x + (drone.velocity.x * np.cos(drone.location.orientation)) * self.physics_timestep
-            new_y = drone.location.y + (drone.velocity.y * np.sin(drone.location.orientation)) * self.physics_timestep
-            new_z = drone.location.z + (drone.velocity.z * self.physics_timestep)
+            if (drone.is_crashed):
+                # only move drones that are not crashed
+                continue
+
+            new_x = drone.location.x + drone.velocity.x * self.physics_timestep
+            new_y = drone.location.y + drone.velocity.y * self.physics_timestep
+            new_z = drone.location.z + drone.velocity.z * self.physics_timestep
             new_angle = drone.location.orientation + (drone.velocity.rotational * self.physics_timestep)
             new_angle = np.mod(new_angle, np.pi * 2.0)
 

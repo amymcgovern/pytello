@@ -108,7 +108,7 @@ class DroneGUI:
         # Draw drones at their start location
         for drone in self.room.drones:
             translated_coordinates = self.get_translated_drone_polygon_coordinates(drone.location)
-            print(translated_coordinates)
+            #print(translated_coordinates)
             id = self.room_canvas.create_polygon(translated_coordinates, fill=drone.team_color)
             self.drone_objects[drone.id] = id
 
