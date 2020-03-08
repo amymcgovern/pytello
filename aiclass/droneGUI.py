@@ -44,6 +44,7 @@ class DroneGUI:
         self.drone_labels = dict()
         self.quit_pressed = False
         self.pause_pressed = False
+        self.points_labels = []
 
         # scale_value is the number of cm that 1 pixel represents
         self.pixels_per_cm = pixels_per_cm
@@ -93,13 +94,7 @@ class DroneGUI:
             y = self.translate_location_to_pixel(asteroid.location.y)
             radius = self.translate_location_to_pixel(asteroid.radius)
 
-            if (asteroid.is_mineable):
-                # https://stackoverflow.com/questions/41383849/setting-the-fill-of-a-rectangle-drawn-with-canvas-to-an-rgb-value
-                fill_color = "#%02x%02x%02x" % (0, int(asteroid.resources * 256), int(asteroid.resources * 256))
-            else:
-                fill_color = "#B59892"
-
-            id = self.room_canvas.create_oval(x-radius, y-radius, x+radius, y+radius, fill=fill_color)
+            id = self.room_canvas.create_oval(x-radius, y-radius, x+radius, y+radius, fill=asteroid.fill_color)
             self.asteroid_objects[asteroid.id] = id
 
             id = self.room_canvas.create_text(x, y, text=str(asteroid.id), fill="white")
@@ -187,6 +182,11 @@ class DroneGUI:
 
         self.pause_button = Button(self.info_window, text="Pause", command=self._pause_button_pressed)
         self.pause_button.pack()
+
+        for asteroid in self.room.asteroids:
+            if(asteroid.is_mineable):
+                self.points_labels.append(Label(self.info_window, bg=asteroid.fill_color, fg='white', text=(str(asteroid.id) + ': ' + str("{:.2f}".format(asteroid.resources)))))
+                self.points_labels[-1].pack()
 
     def update_extra_info(self, timestep):
         """

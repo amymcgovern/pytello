@@ -6,6 +6,8 @@ the rest of the AI class.
 www.github.com/amymcgovern/spacesettlers
 """
 
+
+
 import numpy as np
 import time
 from datetime import datetime
@@ -86,6 +88,12 @@ class Asteroid:
             self.velocity = Velocity(x, y, z=0, rotational=rotational_change)
         else:
             self.velocity = Velocity(0, 0, 0, 0)
+
+        if (self.is_mineable):
+            # https://stackoverflow.com/questions/41383849/setting-the-fill-of-a-rectangle-drawn-with-canvas-to-an-rgb-value
+            self.fill_color = "#%02x%02x%02x" % (0, int(self.resources * 256), int(self.resources * 256))
+        else:
+            self.fill_color = "#B59892"
 
 class Drone:
     def __init__(self, position, id, team_color, tello):
