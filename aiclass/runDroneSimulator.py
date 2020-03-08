@@ -4,9 +4,9 @@ A drone simulator for the AI class
 author: Amy McGovern <dramymcgovern@gmail.com>
 """
 import sys
-import os.path
-sys.path.append(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
+# import os.path
+# sys.path.append(
+#     os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
 
 from droneSimulator import DroneSimulator, Drone, Velocity
 from droneGUI import DroneGUI
