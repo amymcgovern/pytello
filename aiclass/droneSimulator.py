@@ -6,8 +6,6 @@ the rest of the AI class.
 www.github.com/amymcgovern/spacesettlers
 """
 
-
-
 import numpy as np
 import time
 from datetime import datetime
@@ -15,9 +13,12 @@ from pytello.Tello import ensure_distance_within_limits, ensure_speed_within_lim
 import copy
 
 # some user defined parameters
-max_velocity = 0.5 # m/s
-asteroid_radius = 0.4 # in meters (this is large initially)
-drone_radius = 0.1 # in meters
+max_asteroid_speed = 1.5  # m/s
+asteroid_radius = 0.4  # in meters (this is large initially)
+drone_radius = 0.1  # in meters
+score_timesteps = 100  # number of time ticks between scores on the same pad
+crash_timesteps = 30 # number of time tickets between crashes on the same pad
+asteroid_damage = 5 # constant damage score for hitting a non-mineable asteroid
 
 class Position:
     def __init__(self, x, y, z=0, orientation=0):
@@ -52,15 +53,18 @@ class Position:
         dist = np.sqrt(np.square(self.x - x) + np.square(self.y - y))
         return dist
 
+
 class Velocity:
     """
     Velocity vector (by components)
     """
+
     def __init__(self, x, y, z, rotational):
         self.x = x
         self.y = y
         self.z = z
         self.rotational = rotational
+
 
 class Asteroid:
     def __init__(self, position, is_mineable, id, is_moveable):
@@ -80,10 +84,16 @@ class Asteroid:
 
         if (is_mineable):
             self.resources = np.random.random()
+            self.damage = 0
+        else:
+            # you can't get any resources from non-mineable asteroids
+            # but you do get damage
+            self.resources = 0
+            self.damage = asteroid_damage
 
         if (is_moveable):
-            x = np.random.random() * 2.0 * max_velocity - max_velocity
-            y = np.random.random() * 2.0 * max_velocity - max_velocity
+            x = np.random.random() * 2.0 * max_asteroid_speed - max_asteroid_speed
+            y = np.random.random() * 2.0 * max_asteroid_speed - max_asteroid_speed
             rotational_change = (np.random.random() * 0.2) - 0.1
             self.velocity = Velocity(x, y, z=0, rotational=rotational_change)
         else:
@@ -94,6 +104,7 @@ class Asteroid:
             self.fill_color = "#%02x%02x%02x" % (0, int(self.resources * 256), int(self.resources * 256))
         else:
             self.fill_color = "#B59892"
+
 
 class Drone:
     def __init__(self, position, id, team_color, tello):
@@ -112,7 +123,11 @@ class Drone:
         self.team_color = team_color
         self._tello = tello
         self.is_crashed = False
-        self.constant_speed = 0.5 # used because the tello allows a speed to be set, defaulting to 0.5 m/s
+        self.constant_speed = 0.5  # used because the tello allows a speed to be set, defaulting to 0.5 m/s
+        self.last_score_timestep = dict()  # used to track time steps when you score on a pad
+        self.last_crash_timestep = dict() # used to track when you crashed into an obstacle
+        self.score = 0
+        self.damage = 0
 
     def set_location(self, position):
         """
@@ -227,7 +242,8 @@ class Drone:
                 orig_location = copy.copy(self.location)
                 target_distance_m = distance / 100.0
 
-                while (orig_location.distance_from_x_y(self.location.x, self.location.y) < target_distance_m and not self.is_crashed):
+                while (orig_location.distance_from_x_y(self.location.x,
+                                                       self.location.y) < target_distance_m and not self.is_crashed):
                     time.sleep(0.02)
 
                 # stop when you reach the right location
@@ -237,7 +253,6 @@ class Drone:
         else:
             # tell the tello to move
             self._tello.forward_cm(cm, speed)
-
 
     def backward_cm(self, cm, speed=None):
         """
@@ -266,7 +281,8 @@ class Drone:
                 orig_location = copy.copy(self.location)
                 target_distance_m = distance / 100.0
 
-                while (orig_location.distance_from_x_y(self.location.x, self.location.y) < target_distance_m and not self.is_crashed):
+                while (orig_location.distance_from_x_y(self.location.x,
+                                                       self.location.y) < target_distance_m and not self.is_crashed):
                     time.sleep(0.02)
 
                 # stop when you reach the right location
@@ -304,7 +320,8 @@ class Drone:
                 orig_location = copy.copy(self.location)
                 target_distance_m = distance / 100.0
 
-                while (orig_location.distance_from_x_y(self.location.x, self.location.y) < target_distance_m and not self.is_crashed):
+                while (orig_location.distance_from_x_y(self.location.x,
+                                                       self.location.y) < target_distance_m and not self.is_crashed):
                     time.sleep(0.02)
 
                 # stop when you reach the right location
@@ -343,7 +360,8 @@ class Drone:
                 orig_location = copy.copy(self.location)
                 target_distance_m = distance / 100.0
 
-                while (orig_location.distance_from_x_y(self.location.x, self.location.y) < target_distance_m and not self.is_crashed):
+                while (orig_location.distance_from_x_y(self.location.x,
+                                                       self.location.y) < target_distance_m and not self.is_crashed):
                     time.sleep(0.01)
 
                 # stop when you reach the right location
@@ -475,7 +493,8 @@ class DroneSimulator:
             # if we are in simulation mode, automatically create the asteroid and obstacle locations
             self.__initialize_asteroids(num_obstacles, num_asteroids)
         else:
-            print("Real world mode: make sure you initialize the locations and velocities for the asteroids and obstacles and drone")
+            print(
+                "Real world mode: make sure you initialize the locations and velocities for the asteroids and obstacles and drone")
 
     def add_drone(self, drone):
         """
@@ -511,14 +530,14 @@ class DroneSimulator:
 
         id = 1
         for i in range(0, num_obstacles):
-            position = self.get_random_free_location(free_radius=10)
+            position = self.get_random_free_location(free_radius=2+asteroid_radius)
             self.add_asteroid(position, is_mineable=False, id=id)
-            id+= 1
+            id += 1
 
         for i in range(0, num_asteroids):
-            position = self.get_random_free_location(free_radius=10)
+            position = self.get_random_free_location(free_radius=2+asteroid_radius)
             self.add_asteroid(position, is_mineable=True, id=id)
-            id+=1
+            id += 1
 
     def add_random_simulated_drone(self, id, team_color):
         """
@@ -541,7 +560,7 @@ class DroneSimulator:
         :return:
         """
         num_try = 0
-        max_tries = 5
+        max_tries = 10
         loc_found = False
 
         x = 0
@@ -549,15 +568,16 @@ class DroneSimulator:
 
         while (num_try < max_tries and not loc_found):
             # try again
-            x = np.random.random() * (self.length - free_radius)
-            y = np.random.random() * (self.width - free_radius)
+            x = np.random.random() * self.length
+            y = np.random.random() * self.width
 
             loc_found = True
 
             # make sure it is far enough away
             for asteroid in self.asteroids:
                 dist = asteroid.location.distance_from_x_y(x, y)
-                if (dist < free_radius or x - free_radius < 0 or y - free_radius < 0):
+                if (dist < free_radius or (x - free_radius) < 0 or (y - free_radius) < 0 or
+                        (x + free_radius) > self.length or (y + free_radius) > self.width):
                     loc_found = False
                     break
 
@@ -581,7 +601,7 @@ class DroneSimulator:
 
         # step one, move all the asteroids
         for asteroid in self.asteroids:
-            #print(asteroid.location.x, asteroid.location.y)
+            # print(asteroid.location.x, asteroid.location.y)
             new_x = asteroid.location.x + asteroid.velocity.x * self.physics_timestep
             new_y = asteroid.location.y + asteroid.velocity.y * self.physics_timestep
             new_angle = asteroid.location.orientation + (asteroid.velocity.rotational * self.physics_timestep)
@@ -602,7 +622,6 @@ class DroneSimulator:
             asteroid.location.y = new_y
             asteroid.location.orientation = new_angle
 
-
         # update the drone's location
         for drone in self.drones:
             if (drone.is_crashed):
@@ -617,19 +636,49 @@ class DroneSimulator:
 
             # wall or ceiling collisions cause a crash
             if (new_x - drone_radius < 0 or new_x + drone_radius > self.length or
-                new_y - drone_radius < 0 or new_y + drone_radius > self.width or
-                new_z < 0 or new_z + drone_radius > self.height):
+                    new_y - drone_radius < 0 or new_y + drone_radius > self.width or
+                    new_z < 0 or new_z + drone_radius > self.height):
                 print("Drone crashed! %f %f %f" % (new_x, new_y, new_z))
                 new_z = 0
                 drone.is_crashed = True
                 drone.velocity = Velocity(0, 0, 0, 0)
 
             # update the location
-            #print(new_x, new_y, new_z)
+            # print(new_x, new_y, new_z)
             drone.location.x = new_x
             drone.location.y = new_y
             drone.location.z = new_z
             drone.location.orientation = new_angle
+
+        # check to see if a drone landed on a pad or crashed into a non-mineable asteroid
+        for drone in self.drones:
+            # has the drone landed and not crashed
+            if (drone.location.z == 0 and not drone.is_crashed):
+                # check all the mineable asteroids and see if we have landed on one
+                for asteroid in self.asteroids:
+                    if (asteroid.is_mineable):
+                        # it is mineable.  see how far away we are in 3D
+                        dist = drone.location.distance_from_position(asteroid.location)
+
+                        # if we are landed on it, ensure that we didn't land on it recently
+                        if (dist <= asteroid_radius):
+                            if ((asteroid.id not in drone.last_score_timestep) or
+                                    (self.sim_timestep - drone.last_score_timestep[asteroid.id] >= score_timesteps)):
+                                drone.score += asteroid.resources
+                                drone.last_score_timestep[asteroid.id] = self.sim_timestep
+            else:
+                for asteroid in self.asteroids:
+                    if (not asteroid.is_mineable):
+                        # non-mineable, ensure we didn't crash inside the vertical projection
+                        dist = drone.location.distance_from_x_y(asteroid.location.x, asteroid.location.y)
+
+                        # ensure we didn't hit it recently (e.g. give the drone a few time steps to move away
+                        # since the asteroid is only imaginary in 3D (it exists only in 2D)
+                        if (dist <= (asteroid_radius + drone_radius)):
+                            if ((asteroid.id not in drone.last_crash_timestep) or
+                                    (self.sim_timestep - drone.last_crash_timestep[asteroid.id] >= crash_timesteps)):
+                                drone.damage -= asteroid.damage
+                                drone.last_crash_timestep[asteroid.id] = self.sim_timestep
 
         # advance the simulator timestep
         self.sim_timestep += 1

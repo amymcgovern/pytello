@@ -28,6 +28,7 @@ class DroneGUI:
         :param room: the droneRoom room (needed to draw and query obstacles)
         """
         self.root = Tk()
+        self.root.title("PyTello Drone Simulator")
         self.room_frame = Frame(self.root, highlightthickness=5, highlightcolor="black", highlightbackground="black")
         self.room_frame.grid(row=0, column=0)
         self.extra_frame = Frame(self.root)
@@ -44,7 +45,9 @@ class DroneGUI:
         self.drone_labels = dict()
         self.quit_pressed = False
         self.pause_pressed = False
-        self.points_labels = []
+        self.points_labels = dict()
+        self.score_labels = dict()
+        self.damage_labels = dict()
 
         # scale_value is the number of cm that 1 pixel represents
         self.pixels_per_cm = pixels_per_cm
@@ -168,25 +171,81 @@ class DroneGUI:
         """
         Draw a window with a quit button and some basic information
         """
-        self.info_window = self.extra_frame
-        #self.info_window.title("Drones Info")
 
-        timestep = Label(self.info_window, text="Timestep: ")
-        timestep.pack()
+        # create a frame with the time steps
+        time_step_frame = Frame(self.extra_frame)
+        time_step_frame.grid(row=0, column=0, pady=10, padx=10)
 
-        self.timestep_label = Label(self.info_window, text="0")
-        self.timestep_label.pack()
+        timestep = Label(time_step_frame, text="Timestep: ")
+        timestep.grid(row=0, column=0)
 
-        self.quit_button = Button(self.info_window, text="Quit", command=self._quit_button_pressed)
-        self.quit_button.pack()
+        self.timestep_label = Label(time_step_frame, text="000000")
+        self.timestep_label.grid(row=0, column=1)
 
-        self.pause_button = Button(self.info_window, text="Pause", command=self._pause_button_pressed)
-        self.pause_button.pack()
+        # current scores for each drone
+        score_frame = Frame(self.extra_frame)
+        score_frame.grid(row=1, column=0, pady=10)
+        label = Label(score_frame, text="Drone info")
+        label.grid(row=0, columnspan=3)
 
+        id_label = Label(score_frame, text="Id")
+        id_label.grid(row=1, column=0)
+
+        score_label = Label(score_frame, text="Score")
+        score_label.grid(row=1, column=1)
+
+        damage_label = Label(score_frame, text="Damage")
+        damage_label.grid(row=1, column=2)
+
+        # draw the asteroids and their resources
+        row_id = 2
+        for drone in self.room.drones:
+            id_label = Label(score_frame, text=str("{:d}".format(drone.id)))
+            id_label.grid(row=row_id, column=0)
+
+            self.score_labels[drone.id] = Label(score_frame, text=str("{:.2f}".format(drone.score)))
+            self.score_labels[drone.id].grid(row=row_id, column=1)
+
+            self.damage_labels[drone.id] = Label(score_frame, text=str("{:.2f}".format(drone.damage)))
+            self.damage_labels[drone.id].grid(row=row_id, column=2)
+
+            row_id += 1
+
+        # line up the asteroid info next
+        asteroid_frame = Frame(self.extra_frame)
+        asteroid_frame.grid(row=2, column=0, pady=10)
+        label = Label(asteroid_frame, text="Asteroid info")
+        label.grid(row=0, columnspan=2)
+
+        id_label = Label(asteroid_frame, text="Id")
+        id_label.grid(row=1, column=0)
+
+        score_label = Label(asteroid_frame, text="Points")
+        score_label.grid(row=1, column=1)
+
+        # draw the asteroids and their resources
+        row_id = 2
         for asteroid in self.room.asteroids:
             if(asteroid.is_mineable):
-                self.points_labels.append(Label(self.info_window, bg=asteroid.fill_color, fg='white', text=(str(asteroid.id) + ': ' + str("{:.2f}".format(asteroid.resources)))))
-                self.points_labels[-1].pack()
+                id_label = Label(asteroid_frame, text=str("{:d}".format(asteroid.id)))
+                id_label.grid(row=row_id, column=0)
+
+                self.points_labels[asteroid.id] = Label(asteroid_frame, bg=asteroid.fill_color, fg="white",
+                                                        text=str("{:.2f}".format(asteroid.resources)))
+                self.points_labels[asteroid.id].grid(row=row_id, column=1)
+
+                row_id += 1
+
+        # row of buttons on the bottom
+        quit_frame = Frame(self.extra_frame)
+        quit_frame.grid(row=3, column=0, pady=20)
+
+        self.pause_button = Button(quit_frame, text="Pause", command=self._pause_button_pressed)
+        self.pause_button.grid(row=0, column=0, padx=10)
+
+        self.quit_button = Button(quit_frame, text="Quit", command=self._quit_button_pressed)
+        self.quit_button.grid(row=0, column=1, padx=10)
+
 
     def update_extra_info(self, timestep):
         """
@@ -194,8 +253,15 @@ class DroneGUI:
 
         :param timestep:
         """
-        self.timestep_label.config(text=str(timestep))
-        self.info_window.update()
+
+        # update the stuff that changes
+        self.timestep_label.config(text="%06d" % timestep)
+
+        for drone in self.room.drones:
+            self.damage_labels[drone.id].config(text=str("{:.2f}".format(drone.damage)))
+            self.score_labels[drone.id].config(text=str("{:.2f}".format(drone.score)))
+
+        self.extra_frame.update()
         self.root.update_idletasks()
 
     def get_translated_drone_polygon_coordinates(self, drone_position):
