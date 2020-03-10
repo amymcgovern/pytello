@@ -17,7 +17,8 @@ SHIP_SHAPE_UNSCALED = [(30, -50), (39, -40), (40, -35), (55, -60), (40, -60), (3
                        (-82, 68), (-80, 60), (-70, 60), (-40, 15), (-40, -15), (-70, -60), (-80, -60), (-82, -68),
                        (-38, -68), (-40, -60), (-55, -60), (-40, -35), (-39, -40), (-30, -50)]
 
-SHIP_SHAPE_SCALED = np.multiply(drone_radius, SHIP_SHAPE_UNSCALED)
+drone_scale_to_10 = 2.5
+SHIP_SHAPE_SCALED = np.multiply(drone_radius * drone_scale_to_10, SHIP_SHAPE_UNSCALED)
 
 class DroneGUI:
     def __init__(self, pixels_per_cm, room):
@@ -64,6 +65,12 @@ class DroneGUI:
         """
         return int(point * self.pixels_per_cm)
 
+    def print_coords(self, event):
+        print("clicked at", event.x, event.y)
+        center_x = event.x
+        center_y = event.y
+
+
     def draw_room(self):
         # each pixel is scale * 1 cm so multiply by 100 to get the width/height from the meters
         canvas_width = self.translate_location_to_pixel(self.room.length)
@@ -72,13 +79,19 @@ class DroneGUI:
         # draw the room
         self.room_canvas = Canvas(self.room_frame, width=canvas_width, height=canvas_height, bg="#ffffe6",
                                   highlightthickness=0, borderwidth=0)
+        self.room_canvas.bind("<Button-1>", self.print_coords)
         self.room_canvas.pack()
 
         # how to draw a checkered canvas from
         # https://www.python-course.eu/tkinter_canvas.php
-        # vertical lines every 10 m
-        line_distance = self.translate_location_to_pixel(10)
+        # vertical lines every 10 m or ever meter if the room is < 10 wide or long
+        if (self.room.length < 10 and self.room.width < 10):
+            line_distance = self.translate_location_to_pixel(1)
+        else:
+            line_distance = self.translate_location_to_pixel(10)
+
         for x in range(line_distance, canvas_width, line_distance):
+            # make the line red every 10 m
             if (x % (line_distance * 10) == 0):
                 self.room_canvas.create_line(x, 0, x, canvas_height, fill="red", width=2)
             else:
@@ -86,6 +99,7 @@ class DroneGUI:
 
         # horizontal lines at an interval of "line_distance" pixel
         for y in range(line_distance, canvas_height, line_distance):
+            # make the line red every 10 m
             if (y % (line_distance * 10) == 0):
                 self.room_canvas.create_line(0, y, canvas_width, y, fill="red", width=2)
             else:
@@ -93,6 +107,7 @@ class DroneGUI:
 
         # now loop through all the obstacles and draw them
         for asteroid in self.room.asteroids:
+            #print(asteroid.location.x, asteroid.location.y, asteroid.id)
             x = self.translate_location_to_pixel(asteroid.location.x)
             y = self.translate_location_to_pixel(asteroid.location.y)
             radius = self.translate_location_to_pixel(asteroid.radius)
@@ -107,11 +122,14 @@ class DroneGUI:
         for drone in self.room.drones:
             translated_coordinates = self.get_translated_drone_polygon_coordinates(drone.location)
             #print(translated_coordinates)
-            id = self.room_canvas.create_polygon(translated_coordinates, fill=drone.team_color)
-            self.drone_objects[drone.id] = id
+            #id = self.room_canvas.create_polygon(translated_coordinates, fill=drone.team_color)
+            radius = self.translate_location_to_pixel(drone_radius)
 
             x = self.translate_location_to_pixel(drone.location.x)
             y = self.translate_location_to_pixel(drone.location.y)
+            id = self.room_canvas.create_oval(x-radius, y-radius, x+radius, y+radius, fill=drone.team_color)
+            self.drone_objects[drone.id] = id
+
             id = self.room_canvas.create_text(x, y, text=str(drone.location.z), fill="black")
             self.drone_labels[drone.id] = id
 
@@ -142,7 +160,7 @@ class DroneGUI:
             x = self.translate_location_to_pixel(drone.location.x)
             y = self.translate_location_to_pixel(drone.location.y)
 
-            old_coords = self.room_canvas.coords(self.drone_objects[drone.id])
+            old_coords = self.room_canvas.coords(self.drone_labels[drone.id])
             dx = x - old_coords[0]
             dy = y - old_coords[1]
 

@@ -13,9 +13,9 @@ from pytello.Tello import ensure_distance_within_limits, ensure_speed_within_lim
 import copy
 
 # some user defined parameters
-max_asteroid_speed = 1.5  # m/s
-asteroid_radius = 0.4  # in meters (this is large initially)
-drone_radius = 0.1  # in meters
+max_asteroid_speed = 0.3  # m/s
+asteroid_radius = 0.1  # in meters (this is large initially)
+drone_radius = 0.05  # in meters
 score_timesteps = 100  # number of time ticks between scores on the same pad
 crash_timesteps = 30 # number of time tickets between crashes on the same pad
 asteroid_damage = 5 # constant damage score for hitting a non-mineable asteroid
@@ -81,8 +81,18 @@ class Asteroid:
         self.radius = asteroid_radius
         self.id = id
         self.is_moveable = is_moveable
+        self.resources = 0
+        self.damage = 0
 
-        if (is_mineable):
+        self.reset_and_move()
+
+
+    def reset_and_move(self):
+        """
+        Reset the asteroid's resources and move it to a new location
+        :return:
+        """
+        if (self.is_mineable):
             self.resources = np.random.random()
             self.damage = 0
         else:
@@ -91,7 +101,7 @@ class Asteroid:
             self.resources = 0
             self.damage = asteroid_damage
 
-        if (is_moveable):
+        if (self.is_moveable):
             x = np.random.random() * 2.0 * max_asteroid_speed - max_asteroid_speed
             y = np.random.random() * 2.0 * max_asteroid_speed - max_asteroid_speed
             rotational_change = (np.random.random() * 0.2) - 0.1
@@ -99,6 +109,7 @@ class Asteroid:
         else:
             self.velocity = Velocity(0, 0, 0, 0)
 
+        # reset the color to match new resources
         if (self.is_mineable):
             # https://stackoverflow.com/questions/41383849/setting-the-fill-of-a-rectangle-drawn-with-canvas-to-an-rgb-value
             self.fill_color = "#%02x%02x%02x" % (0, int(self.resources * 256), int(self.resources * 256))
@@ -466,7 +477,7 @@ class Drone:
 
 
 class DroneSimulator:
-    def __init__(self, length, width, height, num_obstacles, num_asteroids, is_simulated):
+    def __init__(self, length, width, height, num_obstacles, num_moving_obstacles, num_asteroids, is_simulated):
         """
         Create the empty droneRoom for flying. The user needs to add the drones (since there may be more than one
         and even more than one team)
@@ -475,6 +486,7 @@ class DroneSimulator:
         :param width: width of the room
         :param height: height of the room (if the drone exceeds this, it is "crashed" on the ground where it exceeded it
         :param num_obstacles: number of obstacles (things to not land on)
+        :param num_moving_obstacles: number of obstacles that move (in the real world and in simulation)
         :param num_asteroids: number of asteroids (things that give you resources)
         :param is_simulated: is this a simulator or flying in the real-world?
         """
@@ -491,7 +503,7 @@ class DroneSimulator:
 
         if (self.is_simulated):
             # if we are in simulation mode, automatically create the asteroid and obstacle locations
-            self.__initialize_asteroids(num_obstacles, num_asteroids)
+            self.__initialize_asteroids(num_obstacles, num_moving_obstacles, num_asteroids)
         else:
             print(
                 "Real world mode: make sure you initialize the locations and velocities for the asteroids and obstacles and drone")
@@ -504,7 +516,7 @@ class DroneSimulator:
         """
         self.drones.append(drone)
 
-    def add_asteroid(self, position, id, is_mineable=True):
+    def add_asteroid(self, position, id, is_mineable, is_moveable):
         """
         add the asteroid at the specified location to the list
 
@@ -512,31 +524,32 @@ class DroneSimulator:
         :param is_mineable: True if it is a mineable asteroid and False if it is an obstacle
         :return: nothing
         """
-        if (self.is_simulated):
-            is_moveable = True
-        else:
-            is_moveable = False
-
         asteroid = Asteroid(position, is_mineable, id, is_moveable)
         self.asteroids.append(asteroid)
 
-    def __initialize_asteroids(self, num_obstacles, num_asteroids):
+    def __initialize_asteroids(self, num_obstacles, num_moving_obstacles, num_asteroids):
         """
         Create the specified number of asteroids and ensure they are in free space
         :param num_obstacles: number of obstacles e.g. non-mineable asteroids
+        :param num_moving_obstacles: number of moving real-world/simulated obstacles
         :param num_asteroids: number of mineable asteroids
         :return:
         """
 
         id = 1
-        for i in range(0, num_obstacles):
-            position = self.get_random_free_location(free_radius=2+asteroid_radius)
-            self.add_asteroid(position, is_mineable=False, id=id)
+        for i in range(0, num_moving_obstacles):
+            position = self.get_random_free_location(free_radius=3.0*asteroid_radius)
+            self.add_asteroid(position, is_mineable=False, id=id, is_moveable=True)
+            id += 1
+
+        for i in range(num_moving_obstacles, num_obstacles):
+            position = self.get_random_free_location(free_radius=3.0*asteroid_radius)
+            self.add_asteroid(position, is_mineable=False, id=id, is_moveable=False)
             id += 1
 
         for i in range(0, num_asteroids):
-            position = self.get_random_free_location(free_radius=2+asteroid_radius)
-            self.add_asteroid(position, is_mineable=True, id=id)
+            position = self.get_random_free_location(free_radius=3.0*asteroid_radius)
+            self.add_asteroid(position, is_mineable=True, id=id, is_moveable=False)
             id += 1
 
     def add_random_simulated_drone(self, id, team_color):
@@ -545,7 +558,7 @@ class DroneSimulator:
 
         :return the random drone
         """
-        position = self.get_random_free_location(free_radius=10)
+        position = self.get_random_free_location(free_radius=drone_radius * 3.0)
         position.orientation = np.random.random() * np.pi * 2.0
         drone = Drone(position, id, tello=None, team_color=team_color)
         self.add_drone(drone)
@@ -560,28 +573,37 @@ class DroneSimulator:
         :return:
         """
         num_try = 0
-        max_tries = 10
-        loc_found = False
-
+        max_tries = 30
         x = 0
         y = 0
 
-        while (num_try < max_tries and not loc_found):
-            # try again
+        while (num_try < max_tries):
+            # try a location
             x = np.random.random() * self.length
             y = np.random.random() * self.width
 
-            loc_found = True
+            if ((x - free_radius) < 0 or (y - free_radius) < 0 or
+                (x + free_radius) > self.length or (y + free_radius) > self.width):
+                # it is too close to a wall, don't bother to check other asteroids
+                loc_found = False
+            else:
+                loc_found = True
 
             # make sure it is far enough away
             for asteroid in self.asteroids:
                 dist = asteroid.location.distance_from_x_y(x, y)
-                if (dist < free_radius or (x - free_radius) < 0 or (y - free_radius) < 0 or
-                        (x + free_radius) > self.length or (y + free_radius) > self.width):
+                if (dist < free_radius):
                     loc_found = False
                     break
 
+            # if we found a good location, quit the loop
+            if (loc_found):
+                break
+
             num_try += 1
+
+        if (num_try == max_tries):
+            print("Giving up on initializing, taking a bad one potentially")
 
         return Position(x, y, z=0, orientation=0)
 
@@ -666,6 +688,7 @@ class DroneSimulator:
                                     (self.sim_timestep - drone.last_score_timestep[asteroid.id] >= score_timesteps)):
                                 drone.score += asteroid.resources
                                 drone.last_score_timestep[asteroid.id] = self.sim_timestep
+                                asteroid.reset_and_move()
             else:
                 for asteroid in self.asteroids:
                     if (not asteroid.is_mineable):
