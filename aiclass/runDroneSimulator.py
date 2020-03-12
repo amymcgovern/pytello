@@ -37,13 +37,13 @@ def user_drone_code(gui, drone, droneSimulator):
             drone.forward_cm(100)
         elif (step == 300):
             print("Flying backward")
-            drone.backward_cm(500)
+            drone.backward_cm(200)
         elif (step == 500):
             print("Flying right")
-            drone.right_cm(200)
+            drone.right_cm(100)
         elif (step == 700):
             print("Flying left")
-            drone.left_cm(300)
+            drone.left_cm(100)
         elif (step == 900):
             print("Flying up")
             drone.up_cm(30)
@@ -84,6 +84,8 @@ if __name__ == "__main__":
                           num_moving_obstacles=num_moving_obstacles, num_asteroids=num_asteroids, is_simulated=True)
     drone = room.add_random_simulated_drone(id=1, team_color="red")
     drone.location.orientation = np.pi/2.0
+    drone.location.x = 1.5
+    drone.location.y = 2.5
 
     # create the GUI
     gui = DroneGUI(pixels_per_cm=200, room=room)

@@ -19,6 +19,8 @@ drone_radius = 0.05  # in meters
 score_timesteps = 100  # number of time ticks between scores on the same pad
 crash_timesteps = 30 # number of time tickets between crashes on the same pad
 asteroid_damage = 5 # constant damage score for hitting a non-mineable asteroid
+move_noise = 0.1 # noise variance in x, y, z in m/s
+turn_noise = 0.02 # noise variance in radians
 
 class Position:
     def __init__(self, x, y, z=0, orientation=0):
@@ -255,6 +257,7 @@ class Drone:
 
                 while (orig_location.distance_from_x_y(self.location.x,
                                                        self.location.y) < target_distance_m and not self.is_crashed):
+
                     time.sleep(0.02)
 
                 # stop when you reach the right location
@@ -323,7 +326,7 @@ class Drone:
 
                 # set the right velocities
                 self.velocity.x = -np.sin(self.location.orientation) * speed
-                self.velocity.y = np.cos(self.location.orientation) * speed
+                self.velocity.y = -np.cos(self.location.orientation) * speed
                 self.velocity.z = 0
                 self.velocity.rotational = 0
 
@@ -498,6 +501,7 @@ class DroneSimulator:
         self.is_simulated = is_simulated
         self.asteroids = list()
         self.physics_timestep = 0.05
+        self.noise_timestep = 0
         self.sim_timestep = 0
         self.drones = list()
 
@@ -650,10 +654,19 @@ class DroneSimulator:
                 # only move drones that are not crashed
                 continue
 
-            new_x = drone.location.x + drone.velocity.x * self.physics_timestep
-            new_y = drone.location.y + drone.velocity.y * self.physics_timestep
+            # add a small amount of gaussian noise to the velocities
+            if (self.noise_timestep % 10 == 0):
+                self.x_noise = np.random.normal() * move_noise * drone.velocity.x
+                self.y_noise = np.random.normal() * move_noise * drone.velocity.y
+            x_noise = self.x_noise
+            y_noise = self.y_noise
+            self.noise_timestep += 1
+            #print(x_noise, y_noise)
+
+            new_x = drone.location.x + (drone.velocity.x + x_noise) * self.physics_timestep
+            new_y = drone.location.y + (drone.velocity.y + y_noise) * self.physics_timestep
             new_z = drone.location.z + drone.velocity.z * self.physics_timestep
-            new_angle = drone.location.orientation + (drone.velocity.rotational * self.physics_timestep)
+            new_angle = drone.location.orientation + (drone.velocity.rotational + (np.random.normal() * turn_noise)) * self.physics_timestep
             new_angle = np.mod(new_angle, np.pi * 2.0)
 
             # wall or ceiling collisions cause a crash

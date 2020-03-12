@@ -11,14 +11,14 @@ import math
 from aiclass.droneSimulator import drone_radius
 
 # Drone polygon coordinates (raw)
-SHIP_SHAPE_UNSCALED = [(30, -50), (39, -40), (40, -35), (55, -60), (40, -60), (38, -68), (82, -68), (80, -60),
-                       (70, -60), (40, -15), (40, 15), (70, 60), (80, 60), (82, 68), (38, 68), (40, 60), (55, 60),
-                       (40, 35), (39, 40), (30, 50), (-30, 50), (-39, 40), (-40, 35), (-55, 60), (-40, 60), (-38, 68),
-                       (-82, 68), (-80, 60), (-70, 60), (-40, 15), (-40, -15), (-70, -60), (-80, -60), (-82, -68),
-                       (-38, -68), (-40, -60), (-55, -60), (-40, -35), (-39, -40), (-30, -50)]
+# SHIP_SHAPE_UNSCALED = [(30, -50), (39, -40), (40, -35), (55, -60), (40, -60), (38, -68), (82, -68), (80, -60),
+#                        (70, -60), (40, -15), (40, 15), (70, 60), (80, 60), (82, 68), (38, 68), (40, 60), (55, 60),
+#                        (40, 35), (39, 40), (30, 50), (-30, 50), (-39, 40), (-40, 35), (-55, 60), (-40, 60), (-38, 68),
+#                        (-82, 68), (-80, 60), (-70, 60), (-40, 15), (-40, -15), (-70, -60), (-80, -60), (-82, -68),
+#                        (-38, -68), (-40, -60), (-55, -60), (-40, -35), (-39, -40), (-30, -50)]
 
-drone_scale_to_10 = 2.5
-SHIP_SHAPE_SCALED = np.multiply(drone_radius * drone_scale_to_10, SHIP_SHAPE_UNSCALED)
+SHIP_SHAPE_UNSCALED = [(-0.5,0.5), (0.5, 0), (-0.5, -0.5), (-0.5, 0.5)]
+
 
 class DroneGUI:
     def __init__(self, pixels_per_cm, room):
@@ -52,6 +52,7 @@ class DroneGUI:
 
         # scale_value is the number of cm that 1 pixel represents
         self.pixels_per_cm = pixels_per_cm
+        self.SHIP_SHAPE_SCALED = np.multiply(drone_radius * 2.0 * self.pixels_per_cm, SHIP_SHAPE_UNSCALED)
 
         # draw the room and extra info
         self.draw_room()
@@ -122,12 +123,12 @@ class DroneGUI:
         for drone in self.room.drones:
             translated_coordinates = self.get_translated_drone_polygon_coordinates(drone.location)
             #print(translated_coordinates)
-            #id = self.room_canvas.create_polygon(translated_coordinates, fill=drone.team_color)
+            id = self.room_canvas.create_polygon(translated_coordinates, fill=drone.team_color)
             radius = self.translate_location_to_pixel(drone_radius)
 
             x = self.translate_location_to_pixel(drone.location.x)
             y = self.translate_location_to_pixel(drone.location.y)
-            id = self.room_canvas.create_oval(x-radius, y-radius, x+radius, y+radius, fill=drone.team_color)
+            # id = self.room_canvas.create_oval(x-radius, y-radius, x+radius, y+radius, fill=drone.team_color)
             self.drone_objects[drone.id] = id
 
             id = self.room_canvas.create_text(x, y, text=str(drone.location.z), fill="black")
@@ -293,7 +294,7 @@ class DroneGUI:
         x, y, angle = drone_position.x, drone_position.y, drone_position.orientation
         offset_x = self.translate_location_to_pixel(x)
         offset_y = self.translate_location_to_pixel(y)
-        rotated_coordinates = [self.rotate(origin=(0, 0), point=shape_coord, angle=angle) for shape_coord in SHIP_SHAPE_SCALED]
+        rotated_coordinates = [self.rotate(origin=(0, 0), point=shape_coord, angle=angle) for shape_coord in self.SHIP_SHAPE_SCALED]
         translated_coordinates = [(x+offset_x, y+offset_y) for x, y in rotated_coordinates]
         return translated_coordinates
 
