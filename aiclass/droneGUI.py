@@ -18,7 +18,10 @@ from aiclass.droneSimulator import drone_radius
 #                        (-38, -68), (-40, -60), (-55, -60), (-40, -35), (-39, -40), (-30, -50)]
 
 SHIP_SHAPE_UNSCALED = [(-0.5,0.5), (0.5, 0), (-0.5, -0.5), (-0.5, 0.5)]
-
+marker_id_location_dict = {1: (0.5, 0), 2: (1.5, 0), 3: (2.5, 0), # top
+                           4: (3, 0.5), 5: (3, 1.5), 6: (3, 2.5), 7: (3, 3.5), 8: (3, 4.5), # right
+                           9: (2.5, 5), 10: (1.5, 5), 11: (0.5, 5), # bottom
+                           12: (0, 0.5), 13: (0, 1.5), 14: (0, 2.5), 15: (0, 3.5), 16: (0, 4.5)}
 
 class DroneGUI:
     def __init__(self, pixels_per_cm, room):
@@ -133,6 +136,23 @@ class DroneGUI:
 
             id = self.room_canvas.create_text(x, y, text=str(drone.location.z), fill="black")
             self.drone_labels[drone.id] = id
+
+        # draw the marker ids
+        for marker_id in marker_id_location_dict.keys():
+            (x, y) = marker_id_location_dict[marker_id]
+            if (y == 0):
+                y = 0.05
+            if (x == self.room.length):
+                x -= 0.05
+            if (x == 0):
+                x = 0.05
+            if (y == self.room.width):
+                y -= 0.05
+
+            x = self.translate_location_to_pixel(x)
+            y = self.translate_location_to_pixel(y)
+            id = self.room_canvas.create_text(x, y, text=str(marker_id), fill="red")
+
 
         # actually draw the room
         self.root.update()
