@@ -9,8 +9,9 @@ Some of this code was directly adapted from the pyparrot package:
 
 https://github.com/amymcgovern/pyparrot
 
-pytello was developed by Amy McGovern and William McGovern-Fagg
-August 2019
+pytello was developed by Amy McGovern and William McGovern-Fagg, started in August 2019
+
+Video code adapted from pyparrot library by Katy Felkner, March 2020
 """
 import inspect
 import socket
@@ -911,12 +912,6 @@ class Tello:
 
         self._send_command_wait_for_response("streamoff")
 
-if __name__ == "__main__":
-    tello = Tello(video=True)
-    tello.connect()
-    #tello.gui_object.open_video()
-    tello.open_video()
-    #tello.takeoff()
 
 
 
