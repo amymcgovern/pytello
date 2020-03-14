@@ -136,7 +136,7 @@ class Drone:
         self.team_color = team_color
         self._tello = tello
         self.is_crashed = False
-        self.constant_speed = 0.5  # used because the tello allows a speed to be set, defaulting to 0.5 m/s
+        self.constant_speed = 50  # used because the tello allows a speed to be set, defaulting to 0.5 m/s
         self.last_score_timestep = dict()  # used to track time steps when you score on a pad
         self.last_crash_timestep = dict() # used to track when you crashed into an obstacle
         self.score = 0
@@ -246,6 +246,8 @@ class Drone:
                 if(speed < 10):
                     # Prevent velocity from being set to 0 ie infinite loop
                     return
+                # Convert speed from cm/s to m/s
+                speed = speed / 100
 
                 # set the right velocities
                 self.velocity.x = np.cos(self.location.orientation) * speed
@@ -288,6 +290,9 @@ class Drone:
                 if(speed < 10):
                     # Prevent velocity from being set to 0 ie infinite loop
                     return
+                # Convert speed from cm/s to m/s
+                speed = speed / 100
+
 
                 # set the right velocities
                 self.velocity.x = -np.cos(self.location.orientation) * speed
@@ -329,6 +334,8 @@ class Drone:
                 if(speed < 10):
                     # Prevent velocity from being set to 0 ie infinite loop
                     return
+                # Convert speed from cm/s to m/s
+                speed = speed / 100
 
                 # set the right velocities
                 self.velocity.x = -np.sin(self.location.orientation) * speed
@@ -370,6 +377,8 @@ class Drone:
                 if(speed < 10):
                     # Prevent velocity from being set to 0 ie infinite loop
                     return
+                # Convert speed from cm/s to m/s
+                speed = speed / 100
 
                 # set the right velocities
                 self.velocity.x = np.sin(self.location.orientation) * speed
@@ -412,6 +421,8 @@ class Drone:
                 if(speed < 10):
                     # Prevent velocity from being set to 0 ie infinite loop
                     return
+                # Convert speed from cm/s to m/s
+                speed = speed / 100
 
                 # set the right velocities
                 self.velocity.x = 0
@@ -452,6 +463,8 @@ class Drone:
                 if(speed < 10):
                     # Prevent velocity from being set to 0 ie infinite loop
                     return
+                # Convert speed from cm/s to m/s
+                speed = speed / 100
 
                 # set the right velocities
                 self.velocity.x = 0
