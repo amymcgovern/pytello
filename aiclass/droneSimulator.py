@@ -243,7 +243,7 @@ class Drone:
                 if (speed is None):
                     speed = self.constant_speed
                 speed = ensure_speed_within_limits(speed)
-                if(speed < 10)
+                if(speed < 10):
                     # Prevent velocity from being set to 0 ie infinite loop
                     return
 
@@ -285,7 +285,7 @@ class Drone:
                 if (speed is None):
                     speed = self.constant_speed
                 speed = ensure_speed_within_limits(speed)
-                if(speed < 10)
+                if(speed < 10):
                     # Prevent velocity from being set to 0 ie infinite loop
                     return
 
@@ -326,7 +326,7 @@ class Drone:
                 if (speed is None):
                     speed = self.constant_speed
                 speed = ensure_speed_within_limits(speed)
-                if(speed < 10)
+                if(speed < 10):
                     # Prevent velocity from being set to 0 ie infinite loop
                     return
 
@@ -367,7 +367,7 @@ class Drone:
                 if (speed is None):
                     speed = self.constant_speed
                 speed = ensure_speed_within_limits(speed)
-                if(speed < 10)
+                if(speed < 10):
                     # Prevent velocity from being set to 0 ie infinite loop
                     return
 
@@ -409,7 +409,7 @@ class Drone:
                 if (speed is None):
                     speed = self.constant_speed
                 speed = ensure_speed_within_limits(speed)
-                if(speed < 10)
+                if(speed < 10):
                     # Prevent velocity from being set to 0 ie infinite loop
                     return
 
@@ -445,11 +445,13 @@ class Drone:
         if (self._tello is None):
             if (self.location.z > 0):
                 distance = ensure_distance_within_limits(cm)
-
+                
                 if (speed is None):
                     speed = self.constant_speed
-                else:
-                    speed = ensure_speed_within_limits(speed)
+                speed = ensure_speed_within_limits(speed)
+                if(speed < 10):
+                    # Prevent velocity from being set to 0 ie infinite loop
+                    return
 
                 # set the right velocities
                 self.velocity.x = 0
