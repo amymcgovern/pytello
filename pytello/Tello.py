@@ -521,9 +521,21 @@ class Tello:
         :return: nothing
         """
         # symmetrical moding to stay withen range
-        x = x % 500 if x >= 0 else x % -500
-        y = y % 500 if y >= 0 else y % -500
-        z = z % 500 if z >= 0 else z % -500
+        if (x >= 0):
+            x = ensure_distance_within_limits(x)
+        else:
+            x = -ensure_distance_within_limits(x)
+
+        if (y >= 0):
+            y = ensure_distance_within_limits(y)
+        else:
+            y = -ensure_distance_within_limits(y)
+
+        if (z >= 0):
+            z = ensure_distance_within_limits(z)
+        else:
+            z = -ensure_distance_within_limits(z)
+
         speed = ensure_speed_within_limits(speed)
 
         self._send_command_no_wait("go %d %d %d %d" % (x, y, z, speed))
