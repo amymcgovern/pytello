@@ -70,6 +70,10 @@ if __name__ == "__main__":
     num_timesteps = 10000
     gui_pause = 0.01
     num_asteroids = num_mission_pads - num_obstacles
+    marker_id_location_dict = {1: (0.5, 0), 2: (1.5, 0), 3: (2.5, 0),  # top
+                               4: (3, 0.5), 5: (3, 1.5), 6: (3, 2.5), 7: (3, 3.5), 8: (3, 4.5),  # right
+                               9: (2.5, 5), 10: (1.5, 5), 11: (0.5, 5),  # bottom
+                               12: (0, 0.5), 13: (0, 1.5), 14: (0, 2.5), 15: (0, 3.5), 16: (0, 4.5)}
 
     # argument parser (used currently for graphics/no graphics, defaults to graphics)
     parser = argparse.ArgumentParser(description='drone simulator for pytello')
@@ -88,7 +92,7 @@ if __name__ == "__main__":
     drone.location.y = 2.5
 
     # create the GUI
-    gui = DroneGUI(pixels_per_cm=200, room=room)
+    gui = DroneGUI(pixels_per_cm=200, room=room, marker_id_dict=marker_id_location_dict)
 
     # create the user thread to control the drone
     user_thread = threading.Thread(target=user_drone_code, args=(gui, drone, room))
