@@ -90,11 +90,14 @@ class Asteroid:
         self.reset_and_move()
 
 
-    def reset_and_move(self):
+    def reset_and_move(self, new_location):
         """
         Reset the asteroid's resources and move it to a new location
         :return:
         """
+
+        self.location = new_location
+
         if (self.is_mineable):
             self.resources = np.random.random()
             self.damage = 0
@@ -731,7 +734,8 @@ class DroneSimulator:
                                     (self.sim_timestep - drone.last_score_timestep[asteroid.id] >= score_timesteps)):
                                 drone.score += asteroid.resources
                                 drone.last_score_timestep[asteroid.id] = self.sim_timestep
-                                asteroid.reset_and_move()
+                                new_location = self.get_random_free_location(free_radius=3.0 * asteroid_radius)
+                                asteroid.reset_and_move(new_location)
             else:
                 for asteroid in self.asteroids:
                     if (not asteroid.is_mineable):
