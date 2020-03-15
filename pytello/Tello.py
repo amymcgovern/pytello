@@ -520,7 +520,7 @@ class Tello:
         :param speed: speed in cm/s, valid range [10,100]
         :return: nothing
         """
-        # symmetrical moding to stay withen range
+        # keep the values within range but also keep the sign
         if (x >= 0):
             x = ensure_distance_within_limits(x)
         else:
