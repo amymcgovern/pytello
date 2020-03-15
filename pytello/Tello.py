@@ -23,6 +23,7 @@ import os
 from os.path import join
 import subprocess
 from pytello.utils.NonBlockingStreamReader import NonBlockingStreamReader
+import shutil
 #from pytello.TelloVideoGUI import TelloVideoGUI
 
 def ensure_distance_within_limits(cm):
@@ -68,7 +69,15 @@ def ensure_speed_within_limits(speed):
 
 
 class Tello:
-    def __init__(self, ip_address="192.168.10.1", port=8889, video=False, gui=False):
+    def __init__(self, ip_address="192.168.10.1", port=8889, video=False, gui=False, cleanup_old_images=True):
+        """
+        Create a tello object
+        :param ip_address: IP address (if needed to over-ride default)
+        :param port: port (if needed to override default)
+        :param video: set to True to turn on video stream
+        :param gui: set to True to turn on the GUI (do not use currently)
+        :param cleanup_old_images: set to True to cleanup the old images directory
+        """
         # video arg added by Katy - set it to True to use video streaming
         self.tello_address = (ip_address, port)
 
@@ -77,6 +86,8 @@ class Tello:
         self.sensor_dict = dict()
 
         self._create_udp_connection()
+
+        self.cleanup_old_images = cleanup_old_images
 
         if gui:
             self.gui_object = TelloVideoGUI(self, None, None)
@@ -155,7 +166,7 @@ class Tello:
         data = None
 
         while (self.is_listening):
-            print("Inside loop in command listener")
+            # print("Inside loop in command listener")
             try:
                 (data, address) = self.sock.recvfrom(1024)
                 cmd = data.decode(encoding="utf-8")
@@ -164,7 +175,7 @@ class Tello:
                 self.command_response_received_status = cmd
 
             except socket.timeout:
-                print("command socket timeout - trying again")
+                # print("command socket timeout - trying again")
                 time.sleep(0.1)
                 pass
 
@@ -748,6 +759,14 @@ class Tello:
         shortPath = fullPath[0:shortPathIndex]
         self.imagePath = join(shortPath, "images")
         print(self.imagePath)
+
+        if (self.cleanup_old_images and os.path.isdir(self.imagePath)):
+            print("removing all the old images at %s" % self.imagePath)
+            shutil.rmtree(self.imagePath)
+
+        if (not os.path.isdir(self.imagePath)):
+            print("Making an empty images directory at %s" % self.imagePath)
+            os.mkdir(self.imagePath)
 
         # the first step is to open the rtsp stream through ffmpeg first
         # this step creates a directory full of images, one per frame

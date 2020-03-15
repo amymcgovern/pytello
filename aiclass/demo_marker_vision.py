@@ -89,7 +89,7 @@ if __name__ == "__main__":
     drone = Tello(video=True)
 
     # connect to the tello
-    success = drone.connect(5)
+    success = drone.connect()
 
     # turn on the video
     drone.open_video()
@@ -104,9 +104,14 @@ if __name__ == "__main__":
     while (time_elapsed <= 30):
         marker_img = vision_update_markers(drone)
         cv2.imshow("MarkerStream", marker_img)
-        time.sleep(0.1)
+        k = cv2.waitKey(20)
+        if (k == ord('q') or k == ord('Q')):
+            print("Quitting early")
+            break
 
         now = datetime.now()
         time_elapsed = (now - start_time).seconds
 
+    print("Closing drone video nicely")
     drone.close_video()
+    drone.disconnect()
