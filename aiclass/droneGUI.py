@@ -121,6 +121,7 @@ class DroneGUI:
 
             id = self.room_canvas.create_text(x, y, text=str(asteroid.id), fill="white")
             self.asteroid_labels[asteroid.id] = id
+            asteroid.reset_draw_flag()
 
         # Draw drones at their start location
         for drone in self.room.drones:
@@ -166,16 +167,32 @@ class DroneGUI:
         :return:
         """
         for asteroid in self.room.asteroids:
-            x = self.translate_location_to_pixel(asteroid.location.x)
-            y = self.translate_location_to_pixel(asteroid.location.y)
-            radius = self.translate_location_to_pixel(asteroid.radius)
+            if (asteroid.redraw_flag):
+                # asteroid transported, redraw at new location
+                self.room_canvas.delete(self.asteroid_labels[asteroid.id])
+                self.room_canvas.delete(self.asteroid_objects[asteroid.id])
 
-            old_coords = self.room_canvas.coords(self.asteroid_labels[asteroid.id])
-            dx = x - old_coords[0]
-            dy = y - old_coords[1]
+                x = self.translate_location_to_pixel(asteroid.location.x)
+                y = self.translate_location_to_pixel(asteroid.location.y)
+                radius = self.translate_location_to_pixel(asteroid.radius)
 
-            self.room_canvas.move(self.asteroid_labels[asteroid.id], dx, dy)
-            self.room_canvas.move(self.asteroid_objects[asteroid.id], dx, dy)
+                id = self.room_canvas.create_oval(x-radius, y-radius, x+radius, y+radius, fill=asteroid.fill_color)
+                self.asteroid_objects[asteroid.id] = id
+
+                id = self.room_canvas.create_text(x, y, text=str(asteroid.id), fill="white")
+                self.asteroid_labels[asteroid.id] = id
+                asteroid.reset_draw_flag()
+            else:
+                # just a small move (e.g. velocity based)
+                x = self.translate_location_to_pixel(asteroid.location.x)
+                y = self.translate_location_to_pixel(asteroid.location.y)
+
+                old_coords = self.room_canvas.coords(self.asteroid_labels[asteroid.id])
+                dx = x - old_coords[0]
+                dy = y - old_coords[1]
+
+                self.room_canvas.move(self.asteroid_labels[asteroid.id], dx, dy)
+                self.room_canvas.move(self.asteroid_objects[asteroid.id], dx, dy)
 
         for drone in self.room.drones:
             x = self.translate_location_to_pixel(drone.location.x)

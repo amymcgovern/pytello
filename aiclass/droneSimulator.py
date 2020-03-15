@@ -85,6 +85,7 @@ class Asteroid:
         self.is_moveable = is_moveable
         self.resources = 0
         self.damage = 0
+        self.redraw_flag = False
 
         self.reset_and_move()
 
@@ -117,6 +118,10 @@ class Asteroid:
             self.fill_color = "#%02x%02x%02x" % (0, int(self.resources * 256), int(self.resources * 256))
         else:
             self.fill_color = "#B59892"
+        self.redraw_flag = True
+
+    def reset_draw_flag(self):
+        self.redraw_flag = False
 
 
 class Drone:
