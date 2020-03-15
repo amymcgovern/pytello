@@ -491,9 +491,6 @@ class Tello:
         :return: True if both commands succeeded and False otherwise
         """
 
-        x = ensure_distance_within_limits(x)
-        y = ensure_distance_within_limits(y)
-
         #making the drone move in x by sending the approprate plus or minus command
         if(x > 0):
             success1 = self.forward_cm(x)
@@ -523,9 +520,10 @@ class Tello:
         :param speed: speed in cm/s, valid range [10,100]
         :return: nothing
         """
-        x = ensure_distance_within_limits(x)
-        y = ensure_distance_within_limits(y)
-        z = ensure_distance_within_limits(z)
+        # symmetrical moding to stay withen range
+        x = x % 500 if x >= 0 else x % -500
+        y = y % 500 if y >= 0 else y % -500
+        z = z % 500 if z >= 0 else z % -500
         speed = ensure_speed_within_limits(speed)
 
         self._send_command_no_wait("go %d %d %d %d" % (x, y, z, speed))
