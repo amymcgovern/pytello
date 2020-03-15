@@ -90,13 +90,14 @@ class Asteroid:
         self.reset_and_move()
 
 
-    def reset_and_move(self, new_location):
+    def reset_and_move(self, new_location=None):
         """
-        Reset the asteroid's resources and move it to a new location
+        Reset the asteroid's resources and move it to a new location (if the new location is not None)
         :return:
         """
 
-        self.location = new_location
+        if (new_location is not None):
+            self.location = new_location
 
         if (self.is_mineable):
             self.resources = np.random.random()

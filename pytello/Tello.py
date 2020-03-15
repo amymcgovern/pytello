@@ -23,7 +23,7 @@ import os
 from os.path import join
 import subprocess
 from pytello.utils.NonBlockingStreamReader import NonBlockingStreamReader
-from pytello.TelloVideoGUI import TelloVideoGUI
+#from pytello.TelloVideoGUI import TelloVideoGUI
 
 def ensure_distance_within_limits(cm):
     """
