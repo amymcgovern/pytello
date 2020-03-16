@@ -121,5 +121,7 @@ if __name__ == "__main__":
             if (step % 1000 == 0):
                 print("on step %d" % step)
             room.advance_time()
+            # add a sleep or the user thread never gets run
+            time.sleep(0.01)
 
 
