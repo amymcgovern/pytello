@@ -15,7 +15,7 @@ import threading
 import numpy as np
 import argparse
 
-def user_drone_code(gui, drone, droneSimulator):
+def user_drone_code(gui, drone, droneSimulator, num_timesteps):
     """
     This is where you put any of your user control code
 
@@ -26,7 +26,8 @@ def user_drone_code(gui, drone, droneSimulator):
     """
 
     # run until the quit button is pressed
-    while (not gui.quit_pressed):
+    step = droneSimulator.get_timestep()
+    while ((gui is not None and not gui.quit_pressed) or step < num_timesteps):
         step = droneSimulator.get_timestep()
         if (step == 1):
             print("Takeoff")
@@ -54,7 +55,6 @@ def user_drone_code(gui, drone, droneSimulator):
             print("Landing")
             drone.land()
             print("Done with landing")
-        step += 1
 
         # make sure you yield even for a fraction of a second in the user thread so that
         # the main simulator can run!
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     feature_parser = parser.add_mutually_exclusive_group(required=False)
     feature_parser.add_argument('--graphics', dest='graphics', action='store_true')
     feature_parser.add_argument('--no-graphics', dest='graphics', action='store_false')
-    parser.set_defaults(feature=True)
+    parser.set_defaults(graphics=True)
     args = parser.parse_args()
 
     # create the simulator
@@ -92,22 +92,34 @@ if __name__ == "__main__":
     drone.location.y = 2.5
 
     # create the GUI
-    gui = DroneGUI(pixels_per_cm=200, room=room, marker_id_dict=marker_id_location_dict)
+    if (args.graphics):
+        gui = DroneGUI(pixels_per_cm=200, room=room, marker_id_dict=marker_id_location_dict)
+    else:
+        gui = None
 
     # create the user thread to control the drone
-    user_thread = threading.Thread(target=user_drone_code, args=(gui, drone, room))
+    user_thread = threading.Thread(target=user_drone_code, args=(gui, drone, room, num_timesteps))
     user_thread.start()
 
-    # run the main physics engine (checking each step to see if we are paused or unpaused)
-    while (not gui.quit_pressed or room.get_timestep() < num_timesteps):
-        if (gui.quit_pressed):
-            print("Quitting!")
-            break
+    if (args.graphics):
+        # run the main physics engine (checking each step to see if we are paused or unpaused)
+        while (not gui.quit_pressed or room.get_timestep() < num_timesteps):
+            if (gui.quit_pressed):
+                print("Quitting!")
+                break
 
-        if (not gui.pause_pressed):
+            if (not gui.pause_pressed):
+                room.advance_time()
+
+            gui.update_room(room)
+            gui.update_extra_info(room.get_timestep())
+            time.sleep(gui_pause)
+    else:
+        # run without graphics
+        while (room.get_timestep() < num_timesteps):
+            step = room.get_timestep()
+            if (step % 1000 == 0):
+                print("on step %d" % step)
             room.advance_time()
 
-        gui.update_room(room)
-        gui.update_extra_info(room.get_timestep())
-        time.sleep(gui_pause)
 
