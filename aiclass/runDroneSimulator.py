@@ -27,7 +27,7 @@ def user_drone_code(gui, drone, droneSimulator, num_timesteps):
 
     # run until the quit button is pressed
     step = droneSimulator.get_timestep()
-    while ((gui is not None and not gui.quit_pressed) or step < num_timesteps):
+    while ((gui is not None and not gui.quit_pressed) or (gui is None and step < num_timesteps)):
         step = droneSimulator.get_timestep()
         if (step == 1):
             print("Takeoff")
