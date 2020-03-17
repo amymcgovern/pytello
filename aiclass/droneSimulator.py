@@ -9,6 +9,8 @@ www.github.com/amymcgovern/spacesettlers
 import numpy as np
 import time
 from datetime import datetime
+import sys, os
+sys.path.append(os.path.abspath(os.path.join('..')))
 from pytello.Tello import ensure_distance_within_limits, ensure_speed_within_limits
 import copy
 
@@ -55,6 +57,12 @@ class Position:
         dist = np.sqrt(np.square(self.x - x) + np.square(self.y - y))
         return dist
 
+    def __str__(self):
+        return self.__repr__()
+
+    def __repr__(self):
+        return '({:0.2f}, {:0.2f}, {:0.2f}, {:0.2f})'.format(
+            self.x, self.y, self.z, self.orientation)
 
 class Velocity:
     """
@@ -127,6 +135,11 @@ class Asteroid:
     def reset_draw_flag(self):
         self.redraw_flag = False
 
+    def __repr__(self):
+        return '\nAsteroid at: {}'.format(self.location)
+
+    def __str__(self):
+        return self.__repr__()
 
 class Drone:
     def __init__(self, position, id, team_color, tello):
@@ -753,3 +766,9 @@ class DroneSimulator:
 
         # advance the simulator timestep
         self.sim_timestep += 1
+
+    def __str__(self):
+        return self.__repr__()
+
+    def __repr__(self):
+        return 'Simulation with Asteroids at: \n{}'.format(self.asteroids)
