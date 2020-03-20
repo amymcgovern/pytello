@@ -57,6 +57,9 @@ class Position:
         dist = np.sqrt(np.square(self.x - x) + np.square(self.y - y))
         return dist
 
+    def get_data(self):
+        return (self.x, self.y, self.z, self.orientation)
+
     def __str__(self):
         return self.__repr__()
 
@@ -135,8 +138,15 @@ class Asteroid:
     def reset_draw_flag(self):
         self.redraw_flag = False
 
+    def get_data(self):
+        return (self.is_mineable, self.location.get_data(), self.resources)
+
     def __repr__(self):
-        return '\nAsteroid at: {}'.format(self.location)
+        if self.is_mineable:
+            return '\nAsteroid at: {}, with resources: {:0.3f}'.format(
+                self.location, self.resources)
+        else:
+            return '\nObstacle at: {}'.format(self.location)
 
     def __str__(self):
         return self.__repr__()
@@ -525,6 +535,13 @@ class Drone:
             # tell the tello to move
             self._tello.set_speed(new_speed)
 
+    def __repr__(self):
+        return '\nCords: {}\n Score: {}\n Damage: {}'.format(
+            self.location, self.score, self.damage)
+
+    def __str__(self):
+        return self.__repr__()
+
 
 class DroneSimulator:
     def __init__(self, length, width, height, num_obstacles, num_moving_obstacles, num_asteroids, is_simulated):
@@ -767,8 +784,17 @@ class DroneSimulator:
         # advance the simulator timestep
         self.sim_timestep += 1
 
+    def get_moving_obstacles(self):
+        ret = []
+        for ast in self.asteroids:
+            if ast.is_mineable is False and ast.is_moveable:
+                ret.append(ast)
+        return ret
+
     def __str__(self):
         return self.__repr__()
 
     def __repr__(self):
-        return 'Simulation with Asteroids at: \n{}'.format(self.asteroids)
+        ret = 'Timestep:\n{}\nDrone:\n{}\nOther:\n{}'.format(
+            self.sim_timestep, self.drones, self.asteroids)
+        return ret

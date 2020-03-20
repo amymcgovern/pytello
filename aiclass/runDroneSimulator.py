@@ -110,6 +110,9 @@ if __name__ == "__main__":
 
             if (not gui.pause_pressed):
                 room.advance_time()
+                step = room.get_timestep()
+            if (step % 100 == 0):
+                print(room)
 
             gui.update_room(room)
             gui.update_extra_info(room.get_timestep())
