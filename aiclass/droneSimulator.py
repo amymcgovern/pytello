@@ -24,8 +24,8 @@ drone_radius = 0.05  # in meters
 score_timesteps = 100  # number of time ticks between scores on the same pad
 crash_timesteps = 30 # number of time tickets between crashes on the same pad
 asteroid_damage = 5 # constant damage score for hitting a non-mineable asteroid
-move_noise = 0  # 0.1 # noise variance in x, y, z in m/s
-turn_noise = 0  # 0.02 # noise variance in radians
+move_noise = 0.1 # noise variance in x, y, z in m/s
+turn_noise = 0.02 # noise variance in radians
 
 class Position:
     def __init__(self, x, y, z=0, orientation=0):
