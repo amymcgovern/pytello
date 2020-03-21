@@ -63,7 +63,7 @@ def user_drone_code(gui, drone, droneSimulator, num_timesteps):
 if __name__ == "__main__":
     room_length = 3
     room_width = 5
-    room_height=3
+    room_height = 3
     num_mission_pads = 8
     num_obstacles = 3
     num_moving_obstacles = 1

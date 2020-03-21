@@ -13,16 +13,19 @@ import sys, os
 sys.path.append(os.path.abspath(os.path.join('..')))
 from pytello.Tello import ensure_distance_within_limits, ensure_speed_within_limits
 import copy
+from functools import total_ordering
+
 
 # some user defined parameters
-max_asteroid_speed = 0.3  # m/s
+max_asteroid_speed = 0.5  # m/s
+default_move_speed = 0.5  # m/s
 asteroid_radius = 0.1  # in meters (this is large initially)
 drone_radius = 0.05  # in meters
 score_timesteps = 100  # number of time ticks between scores on the same pad
 crash_timesteps = 30 # number of time tickets between crashes on the same pad
 asteroid_damage = 5 # constant damage score for hitting a non-mineable asteroid
-move_noise = 0.1 # noise variance in x, y, z in m/s
-turn_noise = 0.02 # noise variance in radians
+move_noise = 0  # 0.1 # noise variance in x, y, z in m/s
+turn_noise = 0  # 0.02 # noise variance in radians
 
 class Position:
     def __init__(self, x, y, z=0, orientation=0):
@@ -57,6 +60,9 @@ class Position:
         dist = np.sqrt(np.square(self.x - x) + np.square(self.y - y))
         return dist
 
+    def add_to_orientation(self, theta):
+        self.orientation = (self.orientation + theta) % (2 * np.pi)
+
     def get_data(self):
         return (self.x, self.y, self.z, self.orientation)
 
@@ -64,8 +70,8 @@ class Position:
         return self.__repr__()
 
     def __repr__(self):
-        return '({:0.2f}, {:0.2f}, {:0.2f}, {:0.2f})'.format(
-            self.x, self.y, self.z, self.orientation)
+        return '({:0.2f}, {:0.2f}, {:0.2f}, {:0.2f}pi)'.format(
+            self.x, self.y, self.z, self.orientation / np.pi)
 
 class Velocity:
     """
@@ -79,6 +85,7 @@ class Velocity:
         self.rotational = rotational
 
 
+@total_ordering
 class Asteroid:
     def __init__(self, position, is_mineable, id, is_moveable):
         """
@@ -151,6 +158,21 @@ class Asteroid:
     def __str__(self):
         return self.__repr__()
 
+    def get_ordering_key(self):
+        if self.is_mineable:
+            return self.resources
+        return np.NINF
+
+    def __lt__(self, other):
+        return self.get_ordering_key() < other.get_ordering_key()
+
+    def __gt__(self, other):
+        return self.get_ordering_key() > other.get_ordering_key()
+
+    def __eq__(self, other):
+        return self.get_ordering_key() == other.get_ordering_key()
+
+
 class Drone:
     def __init__(self, position, id, team_color, tello):
         """
@@ -168,7 +190,8 @@ class Drone:
         self.team_color = team_color
         self._tello = tello
         self.is_crashed = False
-        self.constant_speed = 50  # used because the tello allows a speed to be set, defaulting to 0.5 m/s
+        # used because the tello allows a speed to be set, defaulting to 0.5 m/s
+        self.constant_speed = default_move_speed * 100
         self.last_score_timestep = dict()  # used to track time steps when you score on a pad
         self.last_crash_timestep = dict() # used to track when you crashed into an obstacle
         self.score = 0
@@ -536,8 +559,8 @@ class Drone:
             self._tello.set_speed(new_speed)
 
     def __repr__(self):
-        return '\nCords: {}\n Score: {}\n Damage: {}'.format(
-            self.location, self.score, self.damage)
+        return '\nCarshed: {}\nCords: {}\nScore: {}\nDamage: {}'.format(
+            self.is_crashed, self.location, self.score, self.damage)
 
     def __str__(self):
         return self.__repr__()
@@ -627,7 +650,7 @@ class DroneSimulator:
         :return the random drone
         """
         position = self.get_random_free_location(free_radius=drone_radius * 3.0)
-        position.orientation = np.random.random() * np.pi * 2.0
+        position.orientation = 0  # np.random.random() * np.pi * 2.0
         drone = Drone(position, id, tello=None, team_color=team_color)
         self.add_drone(drone)
         return drone
