@@ -104,6 +104,9 @@ if __name__ == "__main__":
     if (args.graphics):
         # run the main physics engine (checking each step to see if we are paused or unpaused)
         while (not gui.quit_pressed and room.get_timestep() < num_timesteps):
+            if (gui.quit_pressed):
+                print("Quitting!")
+            
             if (not gui.pause_pressed):
                 room.advance_time()
                 step = room.get_timestep()
