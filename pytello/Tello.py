@@ -18,11 +18,11 @@ import socket
 import threading
 from datetime import datetime
 import time
-import cv2
+#import cv2
 import os
 from os.path import join
 import subprocess
-from pytello.utils.NonBlockingStreamReader import NonBlockingStreamReader
+#from pytello.utils.NonBlockingStreamReader import NonBlockingStreamReader
 import shutil
 #from pytello.TelloVideoGUI import TelloVideoGUI
 
